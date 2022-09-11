@@ -9,16 +9,6 @@ import (
 	"github.com/slack-go/slack"
 )
 
-const (
-	DOMAIN              = "giantswarm.io"
-	ORGANISATION        = "giantswarm"
-	ACCOUNT_ENGINEERS   = "chapter-ae"
-	SOLUTION_ARCHITECTS = "chapter-se"
-	TEAM_PATTERN        = `^team-[a-z0-9]*$`
-	GITHUB_URL_PATTERN  = `^.*/github\.com/([^/]*).*$`
-	DURATION            = 100 * time.Millisecond
-)
-
 type Slack struct {
 	client *slack.Client
 }
@@ -158,4 +148,42 @@ func (s *Slack) Topics(match string) (topics map[string][]string) {
 		}
 	}
 	return
+}
+
+// Create slack handles for support
+func (s *Slack) SlackHandles(teams []*Team) {
+	var (
+		supportTeams  = make(map[string][]string)
+		supportTopics = make(map[string][]string)
+	)
+	for _, team := range teams {
+		var (
+			supportName string   = "support-" + strings.Split(team.Name, "-")[1]
+			members     []string = make([]string, 0)
+		)
+		for _, topic := range team.Topics {
+			supportTopics = appendTopic(supportTopics, topic, supportName)
+		}
+		for _, m := range team.Members {
+			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) && !m.Afk
+			if (primary || m.Oncall) && m.SlackID != "" {
+				members = append(members, m.SlackID)
+			}
+		}
+		supportTeams[supportName] = members
+	}
+	fmt.Println()
+	for k, v := range supportTeams {
+		fmt.Printf("%s: %v\n", k, v)
+	}
+
+	fmt.Println()
+	for k, v := range supportTopics {
+		var users []string = make([]string, 0)
+		fmt.Printf("%s: %v (", k, v)
+		for _, handle := range v {
+			users = append(users, supportTeams[handle]...)
+		}
+		fmt.Printf("%v)  \n", users)
+	}
 }

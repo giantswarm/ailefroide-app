@@ -1,18 +1,32 @@
 package main
 
 import (
-	"fmt"
 	"os"
-	"strings"
+	"time"
+)
+
+const (
+	DOMAIN              = "giantswarm.io"
+	ORGANISATION        = "giantswarm"
+	ACCOUNT_ENGINEERS   = "chapter-ae"
+	SOLUTION_ARCHITECTS = "chapter-se"
+	TEAM_PATTERN        = `^team-[a-z0-9]*$`
+	GITHUB_URL_PATTERN  = `^.*/github\.com/([^/]*).*$`
+	DURATION            = 100 * time.Millisecond
 )
 
 func main() {
 	g := NewGithub(os.Getenv("GITHUB_TOKEN"))
 	s := NewSlack(os.Getenv("SLACK_TOKEN"))
 	o := NewOpsGenie(os.Getenv("OPSGENIE_TOKEN"))
-	o.ListSchedules()
-	slackUsers := s.Users()
-	topics := s.Topics(TEAM_PATTERN)
+	c := NewCalendar()
+
+	var (
+		afkEvents  []string            = c.CurrentShiftEvents()
+		slackUsers []Member            = s.Users()
+		topics     map[string][]string = s.Topics(TEAM_PATTERN)
+		teams      []*Team             = make([]*Team, 0)
+	)
 	for _, t := range g.Teams(ORGANISATION, TEAM_PATTERN) {
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
@@ -20,20 +34,17 @@ func main() {
 		if topic, ok := topics[t.Name]; ok {
 			t.Topics = topic
 		}
-		fmt.Println(t.Name)
-		fmt.Println(strings.Join(t.Topics, " | "))
 		for _, u := range t.Members {
 			for _, i := range slackUsers {
 				if i.GithubLogin == u.GithubLogin {
 					u.SlackID = i.SlackID
 					u.Email = i.Email
+					u.Afk = containsString(i.Email, afkEvents)
 				}
 			}
 		}
 		o.WhoIsOnCall(t)
-
-		for _, u := range t.Members {
-			fmt.Printf("  - %+v\n", u)
-		}
+		teams = append(teams, t)
 	}
+	s.SlackHandles(teams)
 }

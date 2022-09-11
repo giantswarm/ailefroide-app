@@ -28,16 +28,6 @@ func NewOpsGenie(token string) *Opsgenie {
 	return &o
 }
 
-func (o *Opsgenie) inTimeSpan(start, end, check time.Time) bool {
-	if start.Before(end) {
-		return !check.Before(start) && !check.After(end)
-	}
-	if start.Equal(end) {
-		return check.Equal(start)
-	}
-	return !start.After(check) || !end.Before(check)
-}
-
 func (o *Opsgenie) ListSchedules() (schedules []string) {
 	schedules = make([]string, 0)
 	var expand bool = false
@@ -54,16 +44,13 @@ func (o *Opsgenie) ListSchedules() (schedules []string) {
 // Try and work out who is on call for a given schedule
 func (o *Opsgenie) WhoIsOnCall(team *Team) {
 	var (
-		prefix         string = strings.Split(team.Name, "-")[1]
-		timeSuffix     string = "am"
-		scheduleSuffix string = "schedule"
-
-		start, _           = time.Parse("15:04", "13:00")
-		end, _             = time.Parse("15:04", "23:59")
-		schedules []string = make([]string, 0)
+		prefix         string   = strings.Split(team.Name, "-")[1]
+		timeSuffix     string   = "am"
+		scheduleSuffix string   = "schedule"
+		schedules      []string = make([]string, 0)
 	)
 
-	if o.inTimeSpan(start, end, time.Now()) {
+	if inTimeSpan("13:00", "23:59", time.Now()) {
 		timeSuffix = "pm"
 	}
 
@@ -74,15 +61,19 @@ func (o *Opsgenie) WhoIsOnCall(team *Team) {
 	}
 
 	for _, scheduleName := range schedules {
-		flat := false
-		date := time.Now()
-		scheduleResult, err := o.client.GetOnCalls(context.TODO(), &schedule.GetOnCallsRequest{
+		var (
+			flat           bool      = false
+			date           time.Time = time.Now()
+			scheduleResult *schedule.GetOnCallsResult
+			err            error
+		)
+
+		if scheduleResult, err = o.client.GetOnCalls(context.TODO(), &schedule.GetOnCallsRequest{
 			Flat:                   &flat,
 			Date:                   &date,
 			ScheduleIdentifierType: schedule.Name,
 			ScheduleIdentifier:     scheduleName,
-		})
-		if err != nil {
+		}); err != nil {
 			continue
 		}
 
