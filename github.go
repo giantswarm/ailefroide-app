@@ -11,25 +11,46 @@ import (
 
 type Github struct {
 	client             *github.Client
+	organisation       string
+	se                 string
+	ae                 string
 	solutionArchitects []*Member
 	accountEngineers   []*Member
+	productOwners      []*Member
 }
 
-func NewGithub(token string) *Github {
-	g := Github{}
+func NewGithub(cfg *Config) *Github {
+	g := Github{
+		organisation: cfg.Organisation,
+		se:           cfg.SolutionArchitects,
+		ae:           cfg.AccountEngineers,
+	}
 
 	var (
 		tokenSource = oauth2.StaticTokenSource(
 			&oauth2.Token{
-				AccessToken: token,
+				AccessToken: cfg.GithubToken,
 			},
 		)
 		ctx         = context.Background()
 		oauthClient = oauth2.NewClient(ctx, tokenSource)
 	)
 	g.client = github.NewClient(oauthClient)
-	g.solutionArchitects = g.getMembers(ORGANISATION, SOLUTION_ARCHITECTS)
-	g.accountEngineers = g.getMembers(ORGANISATION, ACCOUNT_ENGINEERS)
+
+	g.solutionArchitects = make([]*Member, 0)
+	g.accountEngineers = make([]*Member, 0)
+	g.productOwners = make([]*Member, 0)
+
+	if cfg.SolutionArchitects != "" {
+		g.solutionArchitects = g.getMembers(g.organisation, cfg.SolutionArchitects)
+	}
+	if cfg.AccountEngineers != "" {
+		g.accountEngineers = g.getMembers(g.organisation, cfg.AccountEngineers)
+	}
+	if cfg.ProductOwners != "" {
+		g.productOwners = g.getMembers(g.organisation, cfg.ProductOwners)
+	}
+
 	return &g
 }
 
@@ -53,7 +74,7 @@ func (g *Github) Teams(org, match string) (teams []*Team) {
 			if pattern.Match([]byte(name)) {
 				var team Team = Team{
 					Name:    name,
-					Members: g.getMembers(ORGANISATION, name),
+					Members: g.getMembers(g.organisation, name),
 				}
 				teams = append(teams, &team)
 			}
@@ -87,7 +108,7 @@ func (g *Github) getMembers(org, team string) (members []*Member) {
 			var member Member = Member{
 				GithubLogin: login,
 			}
-			if team != ACCOUNT_ENGINEERS && team != SOLUTION_ARCHITECTS {
+			if team != g.ae && team != g.se {
 				member.IsAccountEngineer = g.containsLogin(login, g.accountEngineers)
 				// You can be an account engineer, or a solution architect but not both.
 				member.IsSolutionArchitect = g.containsLogin(login, g.solutionArchitects) && !member.IsAccountEngineer

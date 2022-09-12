@@ -10,12 +10,14 @@ import (
 )
 
 type Slack struct {
-	client *slack.Client
+	client        *slack.Client
+	pagingEntries int
 }
 
-func NewSlack(token string) *Slack {
+func NewSlack(token string, pagingEntries int) *Slack {
 	s := Slack{
-		client: slack.New(token),
+		client:        slack.New(token),
+		pagingEntries: pagingEntries,
 	}
 	return &s
 }
@@ -76,11 +78,11 @@ func (s *Slack) userGithubProfile(userID string) (github string) {
 // - GetUsers does not return all profile information so for each internal
 //   user we then need to call GetUserProfile in the method above.
 //   This adds considerable overhead.
-func (s *Slack) Users() (members []Member) {
+func (s *Slack) Users(matchDomain string) (members []Member) {
 	members = make([]Member, 0)
 	users, _ := s.client.GetUsers()
 	for _, user := range users {
-		if !user.Deleted && strings.HasSuffix(user.Profile.Email, DOMAIN) {
+		if !user.Deleted && strings.HasSuffix(user.Profile.Email, matchDomain) {
 			var github string = s.userGithubProfile(user.ID)
 			var member = Member{
 				SlackID:     user.ID,
@@ -102,7 +104,7 @@ func (s *Slack) Topics(match string) (topics map[string][]string) {
 	initChans, initCur, err := s.client.GetConversations(
 		&slack.GetConversationsParameters{
 			ExcludeArchived: true,
-			Limit:           1000,
+			Limit:           s.pagingEntries,
 			Types: []string{
 				"public_channel",
 				"private_channel",
@@ -123,7 +125,7 @@ func (s *Slack) Topics(match string) (topics map[string][]string) {
 			&slack.GetConversationsParameters{
 				Cursor:          nextCur,
 				ExcludeArchived: true,
-				Limit:           1000,
+				Limit:           s.pagingEntries,
 				Types: []string{
 					"public_channel",
 					"private_channel",

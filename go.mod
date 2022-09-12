@@ -3,11 +3,13 @@ module github.com/giantswarm/ailefroide
 go 1.18
 
 require (
+	github.com/creasty/defaults v1.6.0
 	github.com/google/go-github/v47 v47.0.0
 	github.com/opsgenie/opsgenie-go-sdk-v2 v1.2.13
 	github.com/slack-go/slack v0.11.2
 	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
 	google.golang.org/api v0.84.0
+	gopkg.in/yaml.v2 v2.2.3
 )
 
 require (

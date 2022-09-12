@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -12,26 +11,21 @@ import (
 	"google.golang.org/api/option"
 )
 
-const (
-	AFK_CALENDAR = "giantswarm.io_u9j5eaid81sl9b8cd73novr7do@group.calendar.google.com"
-	MAX_ENTRIES  = 200
-	LOCATION     = "Europe/Berlin"
-)
-
 type GoogleCalendar struct {
-	client *calendar.Service
+	client     *calendar.Service
+	calendar   string
+	location   string
+	maxentries int64
 }
 
-func NewCalendar() *GoogleCalendar {
-	g := GoogleCalendar{}
-	ctx := context.Background()
-	b, err := os.ReadFile("token.json")
-	if err != nil {
-		log.Fatalf("Unable to read client secret file: %v", err)
+func NewCalendar(cfg *Config) *GoogleCalendar {
+	g := GoogleCalendar{
+		calendar:   cfg.AfkCalendar,
+		location:   cfg.Location,
+		maxentries: int64(cfg.PagingEntries),
 	}
-
-	// If modifying these scopes, delete your previously saved token.json.
-	conf, err := google.JWTConfigFromJSON(b, calendar.CalendarReadonlyScope)
+	ctx := context.Background()
+	conf, err := google.JWTConfigFromJSON(cfg.CalendarCredentials, calendar.CalendarReadonlyScope)
 	if err != nil {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
@@ -46,8 +40,8 @@ func NewCalendar() *GoogleCalendar {
 	return &g
 }
 
-func (g *GoogleCalendar) location() (t time.Time, y int, m time.Month, d int) {
-	var loc, _ = time.LoadLocation(LOCATION)
+func (g *GoogleCalendar) getLocation() (t time.Time, y int, m time.Month, d int) {
+	var loc, _ = time.LoadLocation(g.location)
 
 	t = time.Now().In(loc)
 	y, m, d = t.Date()
@@ -56,7 +50,7 @@ func (g *GoogleCalendar) location() (t time.Time, y int, m time.Month, d int) {
 
 func (g *GoogleCalendar) AllDayEvents() []string {
 	var (
-		t, y, m, d = g.location()
+		t, y, m, d = g.getLocation()
 		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
 		end        = time.Date(y, m, (d + 1), 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
 	)
@@ -65,7 +59,7 @@ func (g *GoogleCalendar) AllDayEvents() []string {
 
 func (g *GoogleCalendar) MorningEvents() []string {
 	var (
-		t, y, m, d = g.location()
+		t, y, m, d = g.getLocation()
 		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
 		end        = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
 	)
@@ -74,7 +68,7 @@ func (g *GoogleCalendar) MorningEvents() []string {
 
 func (g *GoogleCalendar) AfternoonEvents() []string {
 	var (
-		t, y, m, d = g.location()
+		t, y, m, d = g.getLocation()
 		start      = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
 		end        = time.Date(y, m, d, 18, 0, 0, 0, t.Location()).Format(time.RFC3339)
 	)
@@ -89,8 +83,8 @@ func (g *GoogleCalendar) CurrentShiftEvents() []string {
 }
 
 func (g *GoogleCalendar) EventEmailsInTimeSpan(start, end string) (eventEmails []string) {
-	events, err := g.client.Events.List(AFK_CALENDAR).ShowDeleted(false).
-		SingleEvents(true).TimeMin(start).TimeMax(end).MaxResults(MAX_ENTRIES).OrderBy("startTime").Do()
+	events, err := g.client.Events.List(g.calendar).ShowDeleted(false).
+		SingleEvents(true).TimeMin(start).TimeMax(end).MaxResults(g.maxentries).OrderBy("startTime").Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
 	}
