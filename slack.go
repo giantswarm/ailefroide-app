@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"regexp"
 	"strings"
@@ -14,6 +13,7 @@ import (
 type Slack struct {
 	client        *slack.Client
 	pagingEntries int
+	userGroups    []slack.UserGroup
 }
 
 func NewSlack(token string, pagingEntries int) *Slack {
@@ -21,17 +21,132 @@ func NewSlack(token string, pagingEntries int) *Slack {
 		client:        slack.New(token),
 		pagingEntries: pagingEntries,
 	}
+	go s.getUserGroups()
 	return &s
 }
 
-func (s *Slack) GetUsersPaginated(matchDomain string, members *[]Member) {
-	log.Println("Retrieving users from slack")
-	var err error
-	membersChan := make(chan Member, 0)
+func (s *Slack) checkError(err error) {
+	if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
+		select {
+		case <-time.After(rateLimitedError.RetryAfter):
+			err = nil
+		}
+	}
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+func (s *Slack) getUserGroups() {
 	var (
-		count int       = 0
-		done  chan bool = make(chan bool, 0)
+		users      chan []slack.UserGroup = make(chan []slack.UserGroup)
+		pattern, _                        = regexp.Compile(SUPPORT_PATTERN)
 	)
+	defer close(users)
+	go func() {
+		var err error
+		for err == nil {
+			ug, err := s.client.GetUserGroups()
+			if err == nil {
+				var usergroups []slack.UserGroup = make([]slack.UserGroup, 0)
+				for _, item := range ug {
+					if pattern.Match([]byte(item.Name)) {
+						usergroups = append(usergroups, item)
+					}
+				}
+				users <- usergroups
+				break
+			}
+			s.checkError(err)
+		}
+	}()
+	s.userGroups = <-users
+}
+
+func (s *Slack) CreateUserGroup(name string, topics []string, members []string, ug chan slack.UserGroup) {
+	var (
+		description string          = "Support channel for requests relating to " + strings.Join(topics, ", ")
+		group       slack.UserGroup = slack.UserGroup{
+			Name:        name,
+			Handle:      name,
+			Description: description,
+			Users:       members,
+		}
+		u   slack.UserGroup
+		err error
+	)
+	log.Println("Creating usergroup for", name)
+	for err == nil {
+		u, err = s.client.CreateUserGroup(group)
+		if err == nil {
+			break
+		}
+		s.checkError(err)
+	}
+	ug <- u
+}
+
+func (s *Slack) UpdateUserGroup(name, id string, topics []string, members []string) {
+	var (
+		description string = "Support channel for requests relating to " + strings.Join(topics, ", ")
+		err         error
+	)
+
+	// These are deliberately separate loops.
+	// merging them to a single will cause unnecessary nesting and potential hazards
+	log.Println("Updating usergroup for", name)
+	for {
+		_, err = s.client.UpdateUserGroup(id, slack.UpdateUserGroupsOptionDescription(&description))
+		if err == nil {
+			break
+		}
+		s.checkError(err)
+	}
+
+	log.Println("Updating usergroup members for", name)
+	for {
+		var m string = strings.Join(members, ",")
+		_, err = s.client.UpdateUserGroupMembers(id, m)
+		if err == nil {
+			break
+		}
+		s.checkError(err)
+	}
+}
+
+func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []string) {
+	var (
+		usergroup chan slack.UserGroup = make(chan slack.UserGroup)
+		existing  bool                 = false
+		id        string               = ""
+	)
+	for _, item := range s.userGroups {
+		if item.Name == name {
+			existing = true
+			id = item.ID
+			break
+		}
+	}
+	if existing {
+		s.UpdateUserGroup(name, id, topics, members)
+		return
+	}
+	go s.CreateUserGroup(name, topics, members, usergroup)
+	if u, ok := <-usergroup; ok {
+		s.userGroups = append(s.userGroups, u)
+	}
+}
+
+func (s *Slack) GetUsersPaginated(matchDomain string, userchan *chan []Member) {
+	log.Println("Retrieving users from slack")
+	var (
+		err         error
+		membersChan chan Member = make(chan Member, 0)
+		members     []Member    = make([]Member, 0)
+		count       int         = 0
+		done        chan bool   = make(chan bool, 0)
+	)
+
 	go func(membersChan *chan Member, count *int) {
 		ctx := context.Background()
 		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
@@ -44,14 +159,8 @@ func (s *Slack) GetUsersPaginated(matchDomain string, members *[]Member) {
 						go s.userGithubProfileViaChan(membersChan, Member{SlackID: user.ID, Email: user.Profile.Email})
 					}
 				}
-			} else if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
-				select {
-				case <-ctx.Done():
-					err = ctx.Err()
-				case <-time.After(rateLimitedError.RetryAfter):
-					err = nil
-				}
 			}
+			s.checkError(err)
 		}
 		done <- true
 	}(&membersChan, &count)
@@ -62,7 +171,7 @@ func (s *Slack) GetUsersPaginated(matchDomain string, members *[]Member) {
 	for i < count {
 		select {
 		case user := <-membersChan:
-			*members = append(*members, user)
+			members = append(members, user)
 			i++
 		case <-done:
 			break
@@ -70,7 +179,7 @@ func (s *Slack) GetUsersPaginated(matchDomain string, members *[]Member) {
 	}
 
 	log.Println("Done retrieving slack users")
-	return
+	*userchan <- members
 }
 
 func (s *Slack) userGithubProfileViaChan(ch *chan Member, member Member) {
@@ -106,12 +215,8 @@ func (s *Slack) userGithubProfile(userID string) (github string) {
 		u, err = s.client.GetUserProfile(&options)
 		if err == nil {
 			break
-		} else if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
-			select {
-			case <-time.After(rateLimitedError.RetryAfter):
-				err = nil
-			}
 		}
+		s.checkError(err)
 	}
 
 	if u != nil && u.Fields.Len() > 0 {
@@ -143,7 +248,7 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 		},
 	)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 
@@ -164,7 +269,7 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 			},
 		)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 
@@ -189,13 +294,19 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 func (s *Slack) SlackHandles(teams []*Team) {
 	var (
 		supportTeams  = make(map[string][]string)
+		teamTopics    = make(map[string][]string)
 		supportTopics = make(map[string][]string)
 	)
 	for _, team := range teams {
+		// TESTING
+		// if team.Name != "team-honeybadger" {
+		// 	continue
+		// }
 		var (
 			supportName string   = "support-" + strings.Split(team.Name, "-")[1]
 			members     []string = make([]string, 0)
 		)
+		teamTopics[supportName] = team.Topics
 		for _, topic := range team.Topics {
 			supportTopics = appendTopic(supportTopics, topic, supportName)
 		}
@@ -207,18 +318,17 @@ func (s *Slack) SlackHandles(teams []*Team) {
 		}
 		supportTeams[supportName] = members
 	}
-	fmt.Println()
+
 	for k, v := range supportTeams {
-		fmt.Printf("%s: %v\n", k, v)
+		s.CreateOrUpdateUserGroup(k, teamTopics[k], v)
 	}
 
-	fmt.Println()
 	for k, v := range supportTopics {
 		var users []string = make([]string, 0)
-		fmt.Printf("%s: %v (", k, v)
 		for _, handle := range v {
 			users = append(users, supportTeams[handle]...)
 		}
-		fmt.Printf("%v)  \n", users)
+		// these only have a single topic - the second part of the support name
+		s.CreateOrUpdateUserGroup(k, []string{strings.Split(k, "-")[1]}, users)
 	}
 }

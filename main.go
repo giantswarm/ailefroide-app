@@ -9,6 +9,7 @@ import (
 
 const (
 	TEAM_PATTERN       = `^team-[a-z0-9]*$`
+	SUPPORT_PATTERN    = `^support-[a-z0-9]+(-[\w]+)?$`
 	GITHUB_URL_PATTERN = `^.*/github\.com/([^/]*).*$`
 )
 
@@ -65,17 +66,20 @@ func main() {
 		teams      []*Team       = make([]*Team, 0)
 		teamchan   chan []*Team  = make(chan []*Team)
 		calchan    chan []string = make(chan []string)
+		userchan   chan []Member = make(chan []Member)
 	)
 	defer close(topchan)
 	defer close(teamchan)
 	defer close(calchan)
+	defer close(userchan)
 
 	go c.CurrentShiftEvents(&calchan)
 	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
 
-	// These next two take 4 seconds to execute
-	go s.GetUsersPaginated(cfg.Domain, &slackUsers)
 	go s.Topics(TEAM_PATTERN, &topchan)
+	go s.GetUsersPaginated(cfg.Domain, &userchan)
+
+	slackUsers = <-userchan
 	topics = <-topchan
 	afkEvents = <-calchan
 
@@ -86,7 +90,7 @@ func main() {
 		if topic, ok := topics[t.Name]; ok {
 			t.Topics = topic
 		}
-		go parseTeamMembers(t, slackUsers, afkEvents)
+		parseTeamMembers(t, slackUsers, afkEvents)
 		o.WhoIsOnCall(t)
 		teams = append(teams, t)
 	}
