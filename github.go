@@ -54,14 +54,15 @@ func NewGithub(cfg *Config) *Github {
 	return &g
 }
 
-func (g *Github) Teams(org, match string) (teams []*Team) {
+func (g *Github) Teams(org, match string, teamchan *chan []*Team) { // (teams []*Team) {
+	log.Println("Retrieving teams from github")
 	var (
 		ctx        = context.Background()
 		opts       = &github.ListOptions{}
 		pattern, _ = regexp.Compile(match)
 	)
 
-	teams = make([]*Team, 0)
+	var teams = make([]*Team, 0)
 
 	for {
 		t, r, e := g.client.Teams.ListTeams(ctx, org, opts)
@@ -85,6 +86,8 @@ func (g *Github) Teams(org, match string) (teams []*Team) {
 		}
 		opts.Page = r.NextPage
 	}
+	log.Println("Done retrieving github teams")
+	*teamchan <- teams
 	return
 }
 
@@ -115,7 +118,6 @@ func (g *Github) getMembers(org, team string) (members []*Member) {
 			}
 
 			members = append(members, &member)
-
 		}
 
 		if r.NextPage == 0 {

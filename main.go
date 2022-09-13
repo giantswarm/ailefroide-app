@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -57,13 +58,23 @@ func main() {
 	c := NewCalendar(cfg)
 
 	var (
-		afkEvents  []string            = c.CurrentShiftEvents()
-		slackUsers []Member            = s.Users(cfg.Domain)
-		topics     map[string][]string = s.Topics(TEAM_PATTERN)
-		teams      []*Team             = make([]*Team, 0)
+		afkEvents  []string = c.CurrentShiftEvents()
+		slackUsers []Member
+		topchan    chan map[string][]string = make(chan map[string][]string)
+		topics     map[string][]string
+		teams      []*Team      = make([]*Team, 0)
+		teamchan   chan []*Team = make(chan []*Team)
 	)
 
-	for _, t := range g.Teams(cfg.Organisation, TEAM_PATTERN) {
+	go s.GetUsersPaginated(cfg.Domain, &slackUsers)
+	go s.Topics(TEAM_PATTERN, &topchan)
+	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
+	select {
+	case topics = <-topchan:
+		break
+	}
+
+	for _, t := range <-teamchan {
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
 		}
@@ -75,5 +86,7 @@ func main() {
 		teams = append(teams, t)
 	}
 
+	log.Println("Creating handles")
 	s.SlackHandles(teams)
+	log.Println("Done")
 }

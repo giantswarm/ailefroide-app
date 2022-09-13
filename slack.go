@@ -1,7 +1,9 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 	"time"
@@ -20,6 +22,86 @@ func NewSlack(token string, pagingEntries int) *Slack {
 		pagingEntries: pagingEntries,
 	}
 	return &s
+}
+
+// Get a list of Giantswarm users from Slack
+//
+// This is dreadful on performance for a number of reasons
+// - Call to GetUsers returns all users in slack - we then have to
+//   filter these by giantswarm email address to get just internal users
+// - GetUsers does not return all profile information so for each internal
+//   user we then need to call GetUserProfile in the method above.
+//   This adds considerable overhead.
+func (s *Slack) Users(matchDomain string) (members []Member) {
+	members = make([]Member, 0)
+	users, _ := s.client.GetUsers()
+	for _, user := range users {
+		if !user.Deleted && strings.HasSuffix(user.Profile.Email, matchDomain) {
+			var github string = s.userGithubProfile(user.ID)
+			var member = Member{
+				SlackID:     user.ID,
+				GithubLogin: github,
+				Email:       user.Profile.Email,
+			}
+
+			members = append(members, member)
+		}
+	}
+	return members
+}
+
+func (s *Slack) GetUsersPaginated(matchDomain string, members *[]Member) {
+	log.Println("Retrieving users from slack")
+	var err error
+	membersChan := make(chan Member, 0)
+	var (
+		count int       = 0
+		done  chan bool = make(chan bool, 0)
+	)
+	go func(membersChan *chan Member, count *int) {
+		ctx := context.Background()
+		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
+		for err == nil {
+			p, err = p.Next(ctx)
+			if err == nil {
+				for _, user := range p.Users {
+					if strings.HasSuffix(user.Profile.Email, matchDomain) {
+						*count++
+						go s.userGithubProfileViaChan(membersChan, Member{SlackID: user.ID, Email: user.Profile.Email})
+					}
+				}
+			} else if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
+				select {
+				case <-ctx.Done():
+					err = ctx.Err()
+				case <-time.After(rateLimitedError.RetryAfter):
+					err = nil
+				}
+			}
+		}
+		done <- true
+	}(&membersChan, &count)
+
+	var i int = 0
+
+	<-done
+	for i < count {
+		select {
+		case user := <-membersChan:
+			*members = append(*members, user)
+			i++
+		case <-done:
+			break
+		}
+	}
+
+	log.Println("Done retrieving slack users")
+	return
+}
+
+func (s *Slack) userGithubProfileViaChan(ch *chan Member, member Member) {
+	member.GithubLogin = s.userGithubProfile(member.SlackID)
+	*ch <- member
 }
 
 // Meh.
@@ -70,35 +152,10 @@ func (s *Slack) userGithubProfile(userID string) (github string) {
 	return
 }
 
-// Get a list of Giantswarm users from Slack
-//
-// This is dreadful on performance for a number of reasons
-// - Call to GetUsers returns all users in slack - we then have to
-//   filter these by giantswarm email address to get just internal users
-// - GetUsers does not return all profile information so for each internal
-//   user we then need to call GetUserProfile in the method above.
-//   This adds considerable overhead.
-func (s *Slack) Users(matchDomain string) (members []Member) {
-	members = make([]Member, 0)
-	users, _ := s.client.GetUsers()
-	for _, user := range users {
-		if !user.Deleted && strings.HasSuffix(user.Profile.Email, matchDomain) {
-			var github string = s.userGithubProfile(user.ID)
-			var member = Member{
-				SlackID:     user.ID,
-				GithubLogin: github,
-				Email:       user.Profile.Email,
-			}
-
-			members = append(members, member)
-		}
-	}
-	return members
-}
-
 // Get topics from slack channels matching the team prefix.
-func (s *Slack) Topics(match string) (topics map[string][]string) {
-	topics = make(map[string][]string)
+func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
+	log.Println("Retrieving topics from slack")
+	var topics = make(map[string][]string)
 	var pattern, _ = regexp.Compile(match)
 	slackChans := make([]slack.Channel, 0)
 	initChans, initCur, err := s.client.GetConversations(
@@ -149,6 +206,8 @@ func (s *Slack) Topics(match string) (topics map[string][]string) {
 			}
 		}
 	}
+	*topchan <- topics
+	log.Println("Done retrieving slack topics")
 	return
 }
 
