@@ -25,7 +25,7 @@ func load() *Config {
 
 	if configFile == "" {
 		err = fmt.Errorf("Missing configfile - please specify either AILE_CONFIG_FILE env var or -config")
-	} else if _, err := os.Stat(configFile); err != nil {
+	} else if _, err = os.Stat(configFile); err != nil {
 		err = fmt.Errorf("Config file does not exist or is unreadable")
 	} else if cfg, err = NewConfig(configFile); err != nil {
 		//noop - just about assignment
