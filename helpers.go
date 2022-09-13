@@ -3,22 +3,7 @@ package main
 import (
 	"regexp"
 	"strings"
-	"time"
 )
-
-func inTimeSpan(s, e string, t time.Time) bool {
-	var (
-		start, _ = time.Parse("15:04", s)
-		end, _   = time.Parse("15:04", e)
-	)
-	if start.Before(end) {
-		return !t.Before(start) && !t.After(end)
-	}
-	if start.Equal(end) {
-		return t.Equal(start)
-	}
-	return !start.After(t) || !end.Before(t)
-}
 
 func containsString(what string, where []string) bool {
 	for _, i := range where {

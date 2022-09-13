@@ -40,7 +40,7 @@ func NewCalendar(cfg *Config) *GoogleCalendar {
 	return &g
 }
 
-func (g *GoogleCalendar) getLocation() (t time.Time, y int, m time.Month, d int) {
+func (g *GoogleCalendar) GetLocation() (t time.Time, y int, m time.Month, d int) {
 	var loc, _ = time.LoadLocation(g.location)
 
 	t = time.Now().In(loc)
@@ -49,8 +49,9 @@ func (g *GoogleCalendar) getLocation() (t time.Time, y int, m time.Month, d int)
 }
 
 func (g *GoogleCalendar) AllDayEvents() []string {
+	log.Println("Retrieving all calendar events")
 	var (
-		t, y, m, d = g.getLocation()
+		t, y, m, d = g.GetLocation()
 		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
 		end        = time.Date(y, m, (d + 1), 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
 	)
@@ -58,8 +59,9 @@ func (g *GoogleCalendar) AllDayEvents() []string {
 }
 
 func (g *GoogleCalendar) MorningEvents() []string {
+	log.Println("Retrieving morning calendar events")
 	var (
-		t, y, m, d = g.getLocation()
+		t, y, m, d = g.GetLocation()
 		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
 		end        = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
 	)
@@ -67,19 +69,43 @@ func (g *GoogleCalendar) MorningEvents() []string {
 }
 
 func (g *GoogleCalendar) AfternoonEvents() []string {
+	log.Println("Retrieving afternoon calendar events")
 	var (
-		t, y, m, d = g.getLocation()
+		t, y, m, d = g.GetLocation()
 		start      = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
 		end        = time.Date(y, m, d, 18, 0, 0, 0, t.Location()).Format(time.RFC3339)
 	)
 	return g.EventEmailsInTimeSpan(start, end)
 }
 
-func (g *GoogleCalendar) CurrentShiftEvents() []string {
-	if inTimeSpan("00:00", "13:00", time.Now()) {
-		return g.MorningEvents()
+func (g *GoogleCalendar) IsMorning() bool {
+	var (
+		t, y, m, d = g.GetLocation()
+		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
+		end        = time.Date(y, m, d, 13, 0, 0, 0, t.Location())
+		_start     = start
+		_end       = end
+		_check     = t
+	)
+	if end.Before(start) {
+		_end = end.Add(24 * time.Hour)
+		if t.Before(start) {
+			_check = t.Add(24 * time.Hour)
+		}
 	}
-	return g.AfternoonEvents()
+
+	_start = _start.Add(-1 * time.Nanosecond)
+	_end = _end.Add(1 * time.Nanosecond)
+
+	return _check.After(_start) && _check.Before(_end)
+}
+
+func (g *GoogleCalendar) CurrentShiftEvents(events *chan []string) {
+	if g.IsMorning() {
+		*events <- g.MorningEvents()
+		return
+	}
+	*events <- g.AfternoonEvents()
 }
 
 func (g *GoogleCalendar) EventEmailsInTimeSpan(start, end string) (eventEmails []string) {
@@ -95,5 +121,6 @@ func (g *GoogleCalendar) EventEmailsInTimeSpan(start, end string) (eventEmails [
 			eventEmails = append(eventEmails, item.Creator.Email)
 		}
 	}
+	log.Println("Done retrieving calendar events")
 	return
 }

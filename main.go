@@ -54,27 +54,30 @@ func main() {
 
 	g := NewGithub(cfg)
 	s := NewSlack(cfg.SlackToken, cfg.PagingEntries)
-	o := NewOpsGenie(cfg.OpsGenieToken)
 	c := NewCalendar(cfg)
+	o := NewOpsGenie(cfg.OpsGenieToken, c)
 
 	var (
-		afkEvents  []string = c.CurrentShiftEvents()
+		afkEvents  []string
 		slackUsers []Member
 		topchan    chan map[string][]string = make(chan map[string][]string)
 		topics     map[string][]string
-		teams      []*Team      = make([]*Team, 0)
-		teamchan   chan []*Team = make(chan []*Team)
+		teams      []*Team       = make([]*Team, 0)
+		teamchan   chan []*Team  = make(chan []*Team)
+		calchan    chan []string = make(chan []string)
 	)
 	defer close(topchan)
 	defer close(teamchan)
+	defer close(calchan)
 
+	go c.CurrentShiftEvents(&calchan)
+	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
+
+	// These next two take 4 seconds to execute
 	go s.GetUsersPaginated(cfg.Domain, &slackUsers)
 	go s.Topics(TEAM_PATTERN, &topchan)
-	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
-	select {
-	case topics = <-topchan:
-		break
-	}
+	topics = <-topchan
+	afkEvents = <-calchan
 
 	for _, t := range <-teamchan {
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {

@@ -13,10 +13,13 @@ import (
 type Opsgenie struct {
 	client        *schedule.Client
 	scheduleNames []string
+	calendar      *GoogleCalendar
 }
 
-func NewOpsGenie(token string) *Opsgenie {
-	o := Opsgenie{}
+func NewOpsGenie(token string, calendar *GoogleCalendar) *Opsgenie {
+	o := Opsgenie{
+		calendar: calendar,
+	}
 	var err error
 	if o.client, err = schedule.NewClient(&client.Config{
 		ApiKey: token,
@@ -45,13 +48,13 @@ func (o *Opsgenie) ListSchedules() (schedules []string) {
 func (o *Opsgenie) WhoIsOnCall(team *Team) {
 	var (
 		prefix         string   = strings.Split(team.Name, "-")[1]
-		timeSuffix     string   = "am"
+		timeSuffix     string   = "pm"
 		scheduleSuffix string   = "schedule"
 		schedules      []string = make([]string, 0)
 	)
 
-	if inTimeSpan("13:00", "23:59", time.Now()) {
-		timeSuffix = "pm"
+	if o.calendar.IsMorning() {
+		timeSuffix = "am"
 	}
 
 	for _, item := range o.scheduleNames {

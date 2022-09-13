@@ -24,32 +24,6 @@ func NewSlack(token string, pagingEntries int) *Slack {
 	return &s
 }
 
-// Get a list of Giantswarm users from Slack
-//
-// This is dreadful on performance for a number of reasons
-// - Call to GetUsers returns all users in slack - we then have to
-//   filter these by giantswarm email address to get just internal users
-// - GetUsers does not return all profile information so for each internal
-//   user we then need to call GetUserProfile in the method above.
-//   This adds considerable overhead.
-func (s *Slack) Users(matchDomain string) (members []Member) {
-	members = make([]Member, 0)
-	users, _ := s.client.GetUsers()
-	for _, user := range users {
-		if !user.Deleted && strings.HasSuffix(user.Profile.Email, matchDomain) {
-			var github string = s.userGithubProfile(user.ID)
-			var member = Member{
-				SlackID:     user.ID,
-				GithubLogin: github,
-				Email:       user.Profile.Email,
-			}
-
-			members = append(members, member)
-		}
-	}
-	return members
-}
-
 func (s *Slack) GetUsersPaginated(matchDomain string, members *[]Member) {
 	log.Println("Retrieving users from slack")
 	var err error
