@@ -20,6 +20,7 @@ type Github struct {
 }
 
 func NewGithub(cfg *Config) *Github {
+	log.Println("Setting up Github")
 	g := Github{
 		organisation: cfg.Organisation,
 		se:           cfg.SolutionArchitects,
@@ -41,6 +42,7 @@ func NewGithub(cfg *Config) *Github {
 	g.accountEngineers = make([]*Member, 0)
 	g.productOwners = make([]*Member, 0)
 
+	log.Println("Retrieving principle teams from github")
 	if cfg.SolutionArchitects != "" {
 		g.solutionArchitects = g.getMembers(g.organisation, cfg.SolutionArchitects)
 	}
@@ -50,11 +52,12 @@ func NewGithub(cfg *Config) *Github {
 	if cfg.ProductOwners != "" {
 		g.productOwners = g.getMembers(g.organisation, cfg.ProductOwners)
 	}
+	log.Println("Done setting up github")
 
 	return &g
 }
 
-func (g *Github) Teams(org, match string, teamchan *chan []*Team) { // (teams []*Team) {
+func (g *Github) Teams(org, match string, teamschan *chan []*Team) {
 	log.Println("Retrieving teams from github")
 	var (
 		ctx        = context.Background()
@@ -62,7 +65,12 @@ func (g *Github) Teams(org, match string, teamchan *chan []*Team) { // (teams []
 		pattern, _ = regexp.Compile(match)
 	)
 
-	var teams = make([]*Team, 0)
+	var (
+		teams              = make([]*Team, 0)
+		teamchan chan Team = make(chan Team)
+		count, i int       = 0, 0
+	)
+	defer close(teamchan)
 
 	for {
 		t, r, e := g.client.Teams.ListTeams(ctx, org, opts)
@@ -73,11 +81,8 @@ func (g *Github) Teams(org, match string, teamchan *chan []*Team) { // (teams []
 		for _, item := range t {
 			var name string = item.GetSlug()
 			if pattern.Match([]byte(name)) {
-				var team Team = Team{
-					Name:    name,
-					Members: g.getMembers(g.organisation, name),
-				}
-				teams = append(teams, &team)
+				count++
+				go g.getTeamViaChannel(g.organisation, name, &teamchan)
 			}
 		}
 
@@ -86,9 +91,23 @@ func (g *Github) Teams(org, match string, teamchan *chan []*Team) { // (teams []
 		}
 		opts.Page = r.NextPage
 	}
+
+	for i < count {
+		var team Team = <-teamchan
+		teams = append(teams, &team)
+		i++
+	}
 	log.Println("Done retrieving github teams")
-	*teamchan <- teams
+	*teamschan <- teams
 	return
+}
+
+func (g *Github) getTeamViaChannel(org, team string, teamchan *chan Team) {
+	var members []*Member = g.getMembers(org, team)
+	*teamchan <- Team{
+		Name:    team,
+		Members: members,
+	}
 }
 
 func (g *Github) getMembers(org, team string) (members []*Member) {

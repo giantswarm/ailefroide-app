@@ -25,9 +25,9 @@ func load() *Config {
 	if configFile == "" {
 		err = fmt.Errorf("Missing configfile - please specify either AILE_CONFIG_FILE env var or -config")
 	} else if _, err := os.Stat(configFile); err != nil {
-		fmt.Errorf("Config file does not exist or is unreadable")
+		err = fmt.Errorf("Config file does not exist or is unreadable")
 	} else if cfg, err = NewConfig(configFile); err != nil {
-		err = err
+		//noop - just about assignment
 	}
 
 	if err != nil {
@@ -65,6 +65,8 @@ func main() {
 		teams      []*Team      = make([]*Team, 0)
 		teamchan   chan []*Team = make(chan []*Team)
 	)
+	defer close(topchan)
+	defer close(teamchan)
 
 	go s.GetUsersPaginated(cfg.Domain, &slackUsers)
 	go s.Topics(TEAM_PATTERN, &topchan)
