@@ -305,9 +305,9 @@ func (s *Slack) SlackHandles(teams []*aile.Team) {
 	)
 	for _, team := range teams {
 		// TESTING
-		if team.Name != "team-honeybadger" {
-			continue
-		}
+		// if team.Name != "team-honeybadger" {
+		// 	continue
+		// }
 		var (
 			supportName string   = "support-" + strings.Split(team.Name, "-")[1]
 			members     []string = make([]string, 0)
@@ -320,7 +320,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team) {
 		}
 
 		for _, m := range team.Members {
-			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) //&& !m.Afk
+			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) && !m.Afk
 			if (primary || m.Oncall) && m.SlackID != "" {
 				members = append(members, m.SlackID)
 			}
