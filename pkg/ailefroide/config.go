@@ -19,17 +19,22 @@ type Config struct {
 	SolutionArchitects string `yaml:"solutionArchitects"`
 	ProductOwners      string `yaml:"productOwners"`
 	AfkCalendar        string `yaml:"calendarId"`
+	PersonioGHFieldId  string `yaml:"personioGithubFieldId"`
 
 	// Credentials
-	CalendarTokenFile string `yaml:"calendarCredentialsFile,omitempty"`
-	GithubToken       string `yaml:"githubToken,omitempty"`
-	OpsGenieToken     string `yaml:"opsGenieToken,omitempty"`
-	SlackToken        string `yaml:"slackToken,omitempty"`
+	CalendarTokenFile    string `yaml:"calendarCredentialsFile,omitempty"`
+	GithubToken          string `yaml:"githubToken,omitempty"`
+	OpsGenieToken        string `yaml:"opsGenieToken,omitempty"`
+	SlackToken           string `yaml:"slackToken,omitempty"`
+	PersonioClientId     string `yaml:"persionioClientId"`
+	PersonioClientSecret string `yaml:"persionioClientSecret"`
 
 	Location            string        `yaml:"location" default:"Europe/Berlin"`
 	PagingEntries       int           `yaml:"itemsPerPage" default:"200"`
 	Timeout             time.Duration `yaml:"timeout" default:"100ms"`
 	CalendarCredentials []byte
+	Debug               bool
+	DebugTeam           string
 }
 
 func NewConfig(filename string) (*Config, error) {
@@ -56,6 +61,14 @@ func NewConfig(filename string) (*Config, error) {
 		c.OpsGenieToken = ot
 	}
 
+	if pt := os.Getenv("PERSONIO_CLIENT_ID"); pt != "" {
+		c.PersonioClientId = pt
+	}
+
+	if ps := os.Getenv("PERSONIO_CLIENT_SECRET"); ps != "" {
+		c.PersonioClientSecret = ps
+	}
+
 	err = c.validate()
 	if err == nil {
 		c.CalendarCredentials, err = os.ReadFile(c.CalendarTokenFile)
@@ -76,6 +89,12 @@ func (c *Config) validate() error {
 	}
 	if c.OpsGenieToken == "" {
 		messages = append(messages, "OPSGENIE_TOKEN is missing")
+	}
+	if c.PersonioClientId == "" {
+		messages = append(messages, "PERSONIO_CLIENT_ID is missing")
+	}
+	if c.PersonioClientSecret == "" {
+		messages = append(messages, "PERSONIO_CLIENT_SECRET is missing")
 	}
 	if c.CalendarTokenFile == "" {
 		messages = append(messages, "Config entry CalendarTokenFile is missing")

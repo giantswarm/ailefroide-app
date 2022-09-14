@@ -2,12 +2,15 @@ package slack
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"regexp"
+	"runtime/debug"
 	"strings"
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
+	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	"github.com/slack-go/slack"
 )
 
@@ -26,7 +29,7 @@ func NewSlack(token, expression string, pagingEntries int) *Slack {
 	return &s
 }
 
-func (s *Slack) checkError(err error) {
+func (s *Slack) checkError(err error) error {
 	if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
 		select {
 		case <-time.After(rateLimitedError.RetryAfter):
@@ -34,8 +37,12 @@ func (s *Slack) checkError(err error) {
 		}
 	}
 	if err != nil {
-		log.Println(err)
+		if err.Error() != "pagination complete" {
+			log.Printf("Slack client raised error '%s'", err.Error())
+			debug.PrintStack()
+		}
 	}
+	return err
 }
 
 func (s *Slack) getUserGroups(expression string) {
@@ -58,16 +65,17 @@ func (s *Slack) getUserGroups(expression string) {
 				users <- usergroups
 				break
 			}
-			s.checkError(err)
+			if err = s.checkError(err); err != nil {
+				break
+			}
 		}
 	}()
 	s.userGroups = <-users
 }
 
-func (s *Slack) CreateUserGroup(name string, topics []string, members []string, ug chan slack.UserGroup) {
+func (s *Slack) CreateUserGroup(name, description string, topics []string, members []string, ug chan slack.UserGroup) {
 	var (
-		description string          = "Support channel for requests relating to " + strings.Join(topics, ", ")
-		group       slack.UserGroup = slack.UserGroup{
+		group slack.UserGroup = slack.UserGroup{
 			Name:        name,
 			Handle:      name,
 			Description: description,
@@ -87,39 +95,35 @@ func (s *Slack) CreateUserGroup(name string, topics []string, members []string, 
 	ug <- u
 }
 
-func (s *Slack) UpdateUserGroup(name, id string, topics []string, members []string) {
-	var (
-		description string = "Support channel for requests relating to " + strings.Join(topics, ", ")
-		err         error
-	)
+func (s *Slack) UpdateUserGroup(name, id, description string, topics []string, members []string) {
+	var err error
 
 	// These are deliberately separate loops.
 	// merging them to a single will cause unnecessary nesting and potential hazards
 	log.Println("Updating usergroup for", name)
 	for {
 		_, err = s.client.UpdateUserGroup(id, slack.UpdateUserGroupsOptionDescription(&description))
-		if err == nil {
+		if err == nil || s.checkError(err) != nil {
 			break
 		}
-		s.checkError(err)
 	}
 
 	log.Println("Updating usergroup members for", name)
 	for {
 		var m string = strings.Join(members, ",")
 		_, err = s.client.UpdateUserGroupMembers(id, m)
-		if err == nil {
+		if err == nil || s.checkError(err) != nil {
 			break
 		}
-		s.checkError(err)
 	}
 }
 
 func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []string, done *chan bool) {
 	var (
-		usergroup chan slack.UserGroup = make(chan slack.UserGroup)
-		existing  bool                 = false
-		id        string               = ""
+		description string               = "Support channel for requests relating to " + strings.Join(topics, ", ")
+		usergroup   chan slack.UserGroup = make(chan slack.UserGroup)
+		existing    bool                 = false
+		id          string               = ""
 	)
 	for _, item := range s.userGroups {
 		if item.Name == name {
@@ -128,14 +132,16 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 			break
 		}
 	}
-	if existing {
-		s.UpdateUserGroup(name, id, topics, members)
-		*done <- true
-		return
-	}
-	go s.CreateUserGroup(name, topics, members, usergroup)
-	if u, ok := <-usergroup; ok {
-		s.userGroups = append(s.userGroups, u)
+	if len(members) != 0 { // updating with an empty members list causes an infinite loop.
+		if existing {
+			s.UpdateUserGroup(name, id, description, topics, members)
+			*done <- true
+			return
+		}
+		go s.CreateUserGroup(name, description, topics, members, usergroup)
+		if u, ok := <-usergroup; ok {
+			s.userGroups = append(s.userGroups, u)
+		}
 	}
 	*done <- true
 }
@@ -166,7 +172,9 @@ func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan
 					}
 				}
 			}
-			s.checkError(err)
+			if err = s.checkError(err); err != nil {
+				break
+			}
 		}
 		done <- true
 	}(&membersChan, &count, expression)
@@ -186,6 +194,59 @@ func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan
 
 	log.Println("Done retrieving slack users")
 	*userchan <- members
+}
+
+func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employee, userchan *chan []aile.Member) {
+	log.Println("Retrieving personio users from slack")
+	var (
+		err         error
+		membersChan chan aile.Member = make(chan aile.Member, 0)
+		members     []aile.Member    = make([]aile.Member, 0)
+		count       int              = 0
+		done        chan bool        = make(chan bool, 0)
+	)
+
+	go func(membersChan *chan aile.Member, count *int, people []ap.Employee) {
+		ctx := context.Background()
+		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
+		for err == nil {
+			p, err = p.Next(ctx)
+			if err == nil {
+				for _, user := range p.Users {
+					go func(user slack.User) {
+						for _, person := range people {
+							if user.Profile.Email == person.Email {
+								*count++
+								*membersChan <- aile.Member{
+									Email:       person.Email,
+									SlackID:     user.ID,
+									GithubLogin: person.Github,
+								}
+							}
+						}
+					}(user)
+				}
+			}
+			s.checkError(err)
+		}
+		done <- true
+	}(&membersChan, &count, people)
+
+	<-done
+	var i int = 0
+	for i < count {
+		select {
+		case user := <-membersChan:
+			members = append(members, user)
+			i++
+		case <-done:
+			break
+		}
+	}
+
+	log.Println("Done retrieving slack users")
+	*userchan <- members
+
 }
 
 func (s *Slack) userGithubProfileViaChan(ch *chan aile.Member, member aile.Member, expression string) {
@@ -219,10 +280,9 @@ func (s *Slack) userGithubProfile(userID, expression string) (github string) {
 	// Attempts to handle retrieving from the API with rate limiting in place
 	for {
 		u, err = s.client.GetUserProfile(&options)
-		if err == nil {
+		if err == nil || s.checkError(err) != nil {
 			break
 		}
-		s.checkError(err)
 	}
 
 	if u != nil && u.Fields.Len() > 0 {
@@ -297,17 +357,17 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 }
 
 // Create slack handles for support
-func (s *Slack) SlackHandles(teams []*aile.Team) {
+func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 	var (
 		supportTeams  = make(map[string][]string)
 		teamTopics    = make(map[string][]string)
 		supportTopics = make(map[string][]string)
 	)
 	for _, team := range teams {
-		// TESTING
-		if team.Name != "team-honeybadger" {
+		if debugTeam != "" && team.Name != debugTeam {
 			continue
 		}
+
 		var (
 			supportName string   = "support-" + strings.Split(team.Name, "-")[1]
 			members     []string = make([]string, 0)
@@ -320,7 +380,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team) {
 		}
 
 		for _, m := range team.Members {
-			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) //&& !m.Afk
+			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) && (debug && !m.Afk)
 			if (primary || m.Oncall) && m.SlackID != "" {
 				members = append(members, m.SlackID)
 			}
@@ -334,6 +394,12 @@ func (s *Slack) SlackHandles(teams []*aile.Team) {
 		topicsDone chan bool = make(chan bool)
 		te, to     int       = 0, 0
 	)
+
+	if debug {
+		s.debug(supportTeams, supportTopics)
+		return
+	}
+
 	for k, v := range supportTeams {
 		go s.CreateOrUpdateUserGroup(k, teamTopics[k], v, &teamsDone)
 	}
@@ -358,5 +424,20 @@ func (s *Slack) SlackHandles(teams []*aile.Team) {
 		if te >= len(supportTeams) && to >= len(supportTopics) {
 			break
 		}
+	}
+}
+
+func (s *Slack) debug(supportTeams, supportTopics map[string][]string) {
+	for k, v := range supportTeams {
+		fmt.Printf("%s: %v\n", k, v)
+	}
+
+	for k, v := range supportTopics {
+		var users []string = make([]string, 0)
+		fmt.Printf("%s: %v (", k, v)
+		for _, handle := range v {
+			users = append(users, supportTeams[handle]...)
+		}
+		fmt.Printf("%v)  \n", users)
 	}
 }

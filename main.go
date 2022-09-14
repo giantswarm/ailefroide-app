@@ -10,6 +10,7 @@ import (
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
 	ag "github.com/giantswarm/ailefroide/pkg/github"
 	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
+	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	as "github.com/giantswarm/ailefroide/pkg/slack"
 )
 
@@ -22,11 +23,15 @@ const (
 func load() *aile.Config {
 	var (
 		configFile string
+		debug      bool
+		debugTeam  string
 		err        error
 		cfg        *aile.Config
 	)
 	flag.StringVar(&configFile, "config", os.Getenv("AILE_CONFIG_FILE"),
 		"Config filename - can also be set by environment variable `AILE_CONFIG_FILE`")
+	flag.BoolVar(&debug, "debug", false, "Turn on debugging in the application")
+	flag.StringVar(&debugTeam, "debugteam", "", "Team name for debugging purposes - required if debug is true")
 	flag.Parse()
 
 	if configFile == "" {
@@ -41,6 +46,8 @@ func load() *aile.Config {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	cfg.Debug = debug
+	cfg.DebugTeam = debugTeam
 	return cfg
 }
 
@@ -57,7 +64,14 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 }
 
 func main() {
-	var cfg *aile.Config = load()
+	var (
+		cfg    *aile.Config = load()
+		people []ap.Employee
+	)
+
+	if p, e := ap.New(cfg.PersonioClientId, cfg.PersonioClientSecret, cfg.PersonioGHFieldId); e == nil {
+		people, _ = p.Employees()
+	}
 
 	g := ag.NewGithub(cfg)
 	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries)
@@ -83,25 +97,25 @@ func main() {
 	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
 
 	go s.Topics(TEAM_PATTERN, &topchan)
-	go s.GetUsersPaginated(cfg.Domain, GITHUB_URL_PATTERN, &userchan)
+	go s.GetPersonioUsersPaginated(cfg.Domain, people, &userchan)
 
 	slackUsers = <-userchan
 	topics = <-topchan
 	afkEvents = <-calchan
 
 	for _, t := range <-teamchan {
+		parseTeamMembers(t, slackUsers, afkEvents)
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
 		}
 		if topic, ok := topics[t.Name]; ok {
 			t.Topics = topic
 		}
-		parseTeamMembers(t, slackUsers, afkEvents)
 		o.WhoIsOnCall(t)
 		teams = append(teams, t)
 	}
 
 	log.Println("Creating handles")
-	s.SlackHandles(teams)
+	s.SlackHandles(teams, cfg.Debug, cfg.DebugTeam)
 	log.Println("Done")
 }
