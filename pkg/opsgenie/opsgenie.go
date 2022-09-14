@@ -1,4 +1,4 @@
-package main
+package opsgenie
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
+	ac "github.com/giantswarm/ailefroide/pkg/calendar"
 	"github.com/opsgenie/opsgenie-go-sdk-v2/client"
 	"github.com/opsgenie/opsgenie-go-sdk-v2/schedule"
 )
@@ -13,10 +15,10 @@ import (
 type Opsgenie struct {
 	client        *schedule.Client
 	scheduleNames []string
-	calendar      *GoogleCalendar
+	calendar      *ac.GoogleCalendar
 }
 
-func NewOpsGenie(token string, calendar *GoogleCalendar) *Opsgenie {
+func NewOpsGenie(token string, calendar *ac.GoogleCalendar) *Opsgenie {
 	o := Opsgenie{
 		calendar: calendar,
 	}
@@ -45,7 +47,7 @@ func (o *Opsgenie) ListSchedules() (schedules []string) {
 }
 
 // Try and work out who is on call for a given schedule
-func (o *Opsgenie) WhoIsOnCall(team *Team) {
+func (o *Opsgenie) WhoIsOnCall(team *aile.Team) {
 	var (
 		prefix         string   = strings.Split(team.Name, "-")[1]
 		timeSuffix     string   = "pm"

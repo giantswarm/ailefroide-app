@@ -1,10 +1,11 @@
-package main
+package github
 
 import (
 	"context"
 	"log"
 	"regexp"
 
+	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	"github.com/google/go-github/v47/github"
 	"golang.org/x/oauth2"
 )
@@ -14,12 +15,12 @@ type Github struct {
 	organisation       string
 	se                 string
 	ae                 string
-	solutionArchitects []*Member
-	accountEngineers   []*Member
-	productOwners      []*Member
+	solutionArchitects []*aile.Member
+	accountEngineers   []*aile.Member
+	productOwners      []*aile.Member
 }
 
-func NewGithub(cfg *Config) *Github {
+func NewGithub(cfg *aile.Config) *Github {
 	log.Println("Setting up Github")
 	g := Github{
 		organisation: cfg.Organisation,
@@ -38,9 +39,9 @@ func NewGithub(cfg *Config) *Github {
 	)
 	g.client = github.NewClient(oauthClient)
 
-	g.solutionArchitects = make([]*Member, 0)
-	g.accountEngineers = make([]*Member, 0)
-	g.productOwners = make([]*Member, 0)
+	g.solutionArchitects = make([]*aile.Member, 0)
+	g.accountEngineers = make([]*aile.Member, 0)
+	g.productOwners = make([]*aile.Member, 0)
 
 	log.Println("Retrieving principle teams from github")
 	if cfg.SolutionArchitects != "" {
@@ -57,7 +58,7 @@ func NewGithub(cfg *Config) *Github {
 	return &g
 }
 
-func (g *Github) Teams(org, match string, teamschan *chan []*Team) {
+func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 	log.Println("Retrieving teams from github")
 	var (
 		ctx        = context.Background()
@@ -66,9 +67,9 @@ func (g *Github) Teams(org, match string, teamschan *chan []*Team) {
 	)
 
 	var (
-		teams              = make([]*Team, 0)
-		teamchan chan Team = make(chan Team)
-		count, i int       = 0, 0
+		teams                   = make([]*aile.Team, 0)
+		teamchan chan aile.Team = make(chan aile.Team)
+		count, i int            = 0, 0
 	)
 	defer close(teamchan)
 
@@ -93,7 +94,7 @@ func (g *Github) Teams(org, match string, teamschan *chan []*Team) {
 	}
 
 	for i < count {
-		var team Team = <-teamchan
+		var team aile.Team = <-teamchan
 		teams = append(teams, &team)
 		i++
 	}
@@ -102,21 +103,21 @@ func (g *Github) Teams(org, match string, teamschan *chan []*Team) {
 	return
 }
 
-func (g *Github) getTeamViaChannel(org, team string, teamchan *chan Team) {
-	var members []*Member = g.getMembers(org, team)
-	*teamchan <- Team{
+func (g *Github) getTeamViaChannel(org, team string, teamchan *chan aile.Team) {
+	var members []*aile.Member = g.getMembers(org, team)
+	*teamchan <- aile.Team{
 		Name:    team,
 		Members: members,
 	}
 }
 
-func (g *Github) getMembers(org, team string) (members []*Member) {
+func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 	var (
 		ctx  = context.Background()
 		opts = &github.TeamListTeamMembersOptions{}
 	)
 
-	members = make([]*Member, 0)
+	members = make([]*aile.Member, 0)
 
 	for {
 		u, r, e := g.client.Teams.ListTeamMembersBySlug(ctx, org, team, opts)
@@ -127,7 +128,7 @@ func (g *Github) getMembers(org, team string) (members []*Member) {
 
 		for _, item := range u {
 			var login string = item.GetLogin()
-			var member Member = Member{
+			var member aile.Member = aile.Member{
 				GithubLogin: login,
 			}
 			if team != g.ae && team != g.se {
@@ -148,7 +149,7 @@ func (g *Github) getMembers(org, team string) (members []*Member) {
 	return
 }
 
-func (g *Github) containsLogin(login string, team []*Member) bool {
+func (g *Github) containsLogin(login string, team []*aile.Member) bool {
 	for _, member := range team {
 		if login == member.GithubLogin {
 			return true

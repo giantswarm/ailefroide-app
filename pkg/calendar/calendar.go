@@ -1,10 +1,11 @@
-package main
+package calendar
 
 import (
 	"context"
 	"log"
 	"time"
 
+	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
@@ -18,7 +19,7 @@ type GoogleCalendar struct {
 	maxentries int64
 }
 
-func NewCalendar(cfg *Config) *GoogleCalendar {
+func NewCalendar(cfg *aile.Config) *GoogleCalendar {
 	g := GoogleCalendar{
 		calendar:   cfg.AfkCalendar,
 		location:   cfg.Location,

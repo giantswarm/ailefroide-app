@@ -1,4 +1,4 @@
-package main
+package slack
 
 import (
 	"context"
@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	"github.com/slack-go/slack"
 )
 
@@ -16,12 +17,12 @@ type Slack struct {
 	userGroups    []slack.UserGroup
 }
 
-func NewSlack(token string, pagingEntries int) *Slack {
+func NewSlack(token, expression string, pagingEntries int) *Slack {
 	s := Slack{
 		client:        slack.New(token),
 		pagingEntries: pagingEntries,
 	}
-	go s.getUserGroups()
+	go s.getUserGroups(expression)
 	return &s
 }
 
@@ -37,10 +38,10 @@ func (s *Slack) checkError(err error) {
 	}
 }
 
-func (s *Slack) getUserGroups() {
+func (s *Slack) getUserGroups(expression string) {
 	var (
 		users      chan []slack.UserGroup = make(chan []slack.UserGroup)
-		pattern, _                        = regexp.Compile(SUPPORT_PATTERN)
+		pattern, _                        = regexp.Compile(expression)
 	)
 	defer close(users)
 	go func() {
@@ -114,7 +115,7 @@ func (s *Slack) UpdateUserGroup(name, id string, topics []string, members []stri
 	}
 }
 
-func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []string) {
+func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []string, done *chan bool) {
 	var (
 		usergroup chan slack.UserGroup = make(chan slack.UserGroup)
 		existing  bool                 = false
@@ -129,25 +130,27 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 	}
 	if existing {
 		s.UpdateUserGroup(name, id, topics, members)
+		*done <- true
 		return
 	}
 	go s.CreateUserGroup(name, topics, members, usergroup)
 	if u, ok := <-usergroup; ok {
 		s.userGroups = append(s.userGroups, u)
 	}
+	*done <- true
 }
 
-func (s *Slack) GetUsersPaginated(matchDomain string, userchan *chan []Member) {
+func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan []aile.Member) {
 	log.Println("Retrieving users from slack")
 	var (
 		err         error
-		membersChan chan Member = make(chan Member, 0)
-		members     []Member    = make([]Member, 0)
-		count       int         = 0
-		done        chan bool   = make(chan bool, 0)
+		membersChan chan aile.Member = make(chan aile.Member, 0)
+		members     []aile.Member    = make([]aile.Member, 0)
+		count       int              = 0
+		done        chan bool        = make(chan bool, 0)
 	)
 
-	go func(membersChan *chan Member, count *int) {
+	go func(membersChan *chan aile.Member, count *int, expression string) {
 		ctx := context.Background()
 		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
 		for err == nil {
@@ -156,14 +159,17 @@ func (s *Slack) GetUsersPaginated(matchDomain string, userchan *chan []Member) {
 				for _, user := range p.Users {
 					if strings.HasSuffix(user.Profile.Email, matchDomain) {
 						*count++
-						go s.userGithubProfileViaChan(membersChan, Member{SlackID: user.ID, Email: user.Profile.Email})
+						go s.userGithubProfileViaChan(membersChan, aile.Member{
+							SlackID: user.ID,
+							Email:   user.Profile.Email,
+						}, expression)
 					}
 				}
 			}
 			s.checkError(err)
 		}
 		done <- true
-	}(&membersChan, &count)
+	}(&membersChan, &count, expression)
 
 	var i int = 0
 
@@ -182,8 +188,8 @@ func (s *Slack) GetUsersPaginated(matchDomain string, userchan *chan []Member) {
 	*userchan <- members
 }
 
-func (s *Slack) userGithubProfileViaChan(ch *chan Member, member Member) {
-	member.GithubLogin = s.userGithubProfile(member.SlackID)
+func (s *Slack) userGithubProfileViaChan(ch *chan aile.Member, member aile.Member, expression string) {
+	member.GithubLogin = s.userGithubProfile(member.SlackID, expression)
 	*ch <- member
 }
 
@@ -199,7 +205,7 @@ func (s *Slack) userGithubProfileViaChan(ch *chan Member, member Member) {
 //
 // Automation only works when users want to be automated.
 //
-func (s *Slack) userGithubProfile(userID string) (github string) {
+func (s *Slack) userGithubProfile(userID, expression string) (github string) {
 	var (
 		options = slack.GetUserProfileParameters{
 			UserID:        userID,
@@ -207,7 +213,7 @@ func (s *Slack) userGithubProfile(userID string) (github string) {
 		}
 		u          *slack.UserProfile
 		err        error
-		pattern, _ = regexp.Compile(GITHUB_URL_PATTERN)
+		pattern, _ = regexp.Compile(expression)
 	)
 
 	// Attempts to handle retrieving from the API with rate limiting in place
@@ -291,7 +297,7 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 }
 
 // Create slack handles for support
-func (s *Slack) SlackHandles(teams []*Team) {
+func (s *Slack) SlackHandles(teams []*aile.Team) {
 	var (
 		supportTeams  = make(map[string][]string)
 		teamTopics    = make(map[string][]string)
@@ -299,28 +305,37 @@ func (s *Slack) SlackHandles(teams []*Team) {
 	)
 	for _, team := range teams {
 		// TESTING
-		// if team.Name != "team-honeybadger" {
-		// 	continue
-		// }
+		if team.Name != "team-honeybadger" {
+			continue
+		}
 		var (
 			supportName string   = "support-" + strings.Split(team.Name, "-")[1]
 			members     []string = make([]string, 0)
 		)
+
 		teamTopics[supportName] = team.Topics
+
 		for _, topic := range team.Topics {
-			supportTopics = appendTopic(supportTopics, topic, supportName)
+			supportTopics = aile.AppendTopic(supportTopics, topic, supportName)
 		}
+
 		for _, m := range team.Members {
-			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) && !m.Afk
+			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) //&& !m.Afk
 			if (primary || m.Oncall) && m.SlackID != "" {
 				members = append(members, m.SlackID)
 			}
 		}
+
 		supportTeams[supportName] = members
 	}
 
+	var (
+		teamsDone  chan bool = make(chan bool)
+		topicsDone chan bool = make(chan bool)
+		te, to     int       = 0, 0
+	)
 	for k, v := range supportTeams {
-		s.CreateOrUpdateUserGroup(k, teamTopics[k], v)
+		go s.CreateOrUpdateUserGroup(k, teamTopics[k], v, &teamsDone)
 	}
 
 	for k, v := range supportTopics {
@@ -329,6 +344,19 @@ func (s *Slack) SlackHandles(teams []*Team) {
 			users = append(users, supportTeams[handle]...)
 		}
 		// these only have a single topic - the second part of the support name
-		s.CreateOrUpdateUserGroup(k, []string{strings.Split(k, "-")[1]}, users)
+		go s.CreateOrUpdateUserGroup(k, []string{strings.Split(k, "-")[1]}, users, &topicsDone)
+	}
+
+	for {
+		select {
+		case _ = <-teamsDone:
+			te++
+		case _ = <-topicsDone:
+			to++
+		}
+
+		if te >= len(supportTeams) && to >= len(supportTopics) {
+			break
+		}
 	}
 }

@@ -5,6 +5,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+
+	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
+	ac "github.com/giantswarm/ailefroide/pkg/calendar"
+	ag "github.com/giantswarm/ailefroide/pkg/github"
+	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
+	as "github.com/giantswarm/ailefroide/pkg/slack"
 )
 
 const (
@@ -13,11 +19,11 @@ const (
 	GITHUB_URL_PATTERN = `^.*/github\.com/([^/]*).*$`
 )
 
-func load() *Config {
+func load() *aile.Config {
 	var (
 		configFile string
 		err        error
-		cfg        *Config
+		cfg        *aile.Config
 	)
 	flag.StringVar(&configFile, "config", os.Getenv("AILE_CONFIG_FILE"),
 		"Config filename - can also be set by environment variable `AILE_CONFIG_FILE`")
@@ -27,7 +33,7 @@ func load() *Config {
 		err = fmt.Errorf("Missing configfile - please specify either AILE_CONFIG_FILE env var or -config")
 	} else if _, err = os.Stat(configFile); err != nil {
 		err = fmt.Errorf("Config file does not exist or is unreadable")
-	} else if cfg, err = NewConfig(configFile); err != nil {
+	} else if cfg, err = aile.NewConfig(configFile); err != nil {
 		//noop - just about assignment
 	}
 
@@ -38,35 +44,35 @@ func load() *Config {
 	return cfg
 }
 
-func parseTeamMembers(team *Team, slackUsers []Member, afkEvents []string) {
+func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string) {
 	for _, u := range team.Members {
 		for _, i := range slackUsers {
 			if i.GithubLogin == u.GithubLogin {
 				u.SlackID = i.SlackID
 				u.Email = i.Email
-				u.Afk = containsString(i.Email, afkEvents)
+				u.Afk = aile.ContainsString(i.Email, afkEvents)
 			}
 		}
 	}
 }
 
 func main() {
-	var cfg *Config = load()
+	var cfg *aile.Config = load()
 
-	g := NewGithub(cfg)
-	s := NewSlack(cfg.SlackToken, cfg.PagingEntries)
-	c := NewCalendar(cfg)
-	o := NewOpsGenie(cfg.OpsGenieToken, c)
+	g := ag.NewGithub(cfg)
+	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries)
+	c := ac.NewCalendar(cfg)
+	o := ao.NewOpsGenie(cfg.OpsGenieToken, c)
 
 	var (
 		afkEvents  []string
-		slackUsers []Member
+		slackUsers []aile.Member
 		topchan    chan map[string][]string = make(chan map[string][]string)
 		topics     map[string][]string
-		teams      []*Team       = make([]*Team, 0)
-		teamchan   chan []*Team  = make(chan []*Team)
-		calchan    chan []string = make(chan []string)
-		userchan   chan []Member = make(chan []Member)
+		teams      []*aile.Team       = make([]*aile.Team, 0)
+		teamchan   chan []*aile.Team  = make(chan []*aile.Team)
+		calchan    chan []string      = make(chan []string)
+		userchan   chan []aile.Member = make(chan []aile.Member)
 	)
 	defer close(topchan)
 	defer close(teamchan)
@@ -77,7 +83,7 @@ func main() {
 	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
 
 	go s.Topics(TEAM_PATTERN, &topchan)
-	go s.GetUsersPaginated(cfg.Domain, &userchan)
+	go s.GetUsersPaginated(cfg.Domain, GITHUB_URL_PATTERN, &userchan)
 
 	slackUsers = <-userchan
 	topics = <-topchan
