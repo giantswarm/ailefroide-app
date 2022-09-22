@@ -8,6 +8,7 @@ import (
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
+	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	"github.com/slack-go/slack"
 )
 
@@ -186,6 +187,58 @@ func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan
 
 	log.Println("Done retrieving slack users")
 	*userchan <- members
+}
+
+func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employee, userchan *chan []aile.Member) {
+	log.Println("Retrieving users from slack")
+	var (
+		err         error
+		membersChan chan aile.Member = make(chan aile.Member, 0)
+		members     []aile.Member    = make([]aile.Member, 0)
+		count       int              = 0
+		done        chan bool        = make(chan bool, 0)
+	)
+
+	go func(membersChan *chan aile.Member, count *int, people []ap.Employee) {
+		ctx := context.Background()
+		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
+		for err == nil {
+			p, err = p.Next(ctx)
+			if err == nil {
+				for _, user := range p.Users {
+					for _, person := range people {
+						if user.Profile.Email == person.Email {
+							*membersChan <- aile.Member{
+								Email:       person.Email,
+								SlackID:     user.ID,
+								GithubLogin: person.Github,
+							}
+							*count++
+						}
+					}
+				}
+			}
+			s.checkError(err)
+		}
+		done <- true
+	}(&membersChan, &count, people)
+
+	var i int = 0
+
+	<-done
+	for i < count {
+		select {
+		case user := <-membersChan:
+			members = append(members, user)
+			i++
+		case <-done:
+			break
+		}
+	}
+
+	log.Println("Done retrieving slack users")
+	*userchan <- members
+
 }
 
 func (s *Slack) userGithubProfileViaChan(ch *chan aile.Member, member aile.Member, expression string) {

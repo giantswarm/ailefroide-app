@@ -10,6 +10,7 @@ import (
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
 	ag "github.com/giantswarm/ailefroide/pkg/github"
 	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
+	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	as "github.com/giantswarm/ailefroide/pkg/slack"
 )
 
@@ -57,7 +58,15 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 }
 
 func main() {
-	var cfg *aile.Config = load()
+	var (
+		cfg    *aile.Config = load()
+		people []ap.Employee
+	)
+
+	if p, e := ap.New(cfg.PersonioClientId, cfg.PersonioClientSecret, cfg.PersonioGHFieldId); e == nil {
+		i, _ := p.Employees()
+		fmt.Printf("%+v\n", i)
+	}
 
 	g := ag.NewGithub(cfg)
 	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries)
@@ -83,7 +92,7 @@ func main() {
 	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
 
 	go s.Topics(TEAM_PATTERN, &topchan)
-	go s.GetUsersPaginated(cfg.Domain, GITHUB_URL_PATTERN, &userchan)
+	go s.GetPersonioUsersPaginated(cfg.Domain, people, &userchan)
 
 	slackUsers = <-userchan
 	topics = <-topchan
@@ -102,6 +111,6 @@ func main() {
 	}
 
 	log.Println("Creating handles")
-	s.SlackHandles(teams)
+	//s.SlackHandles(teams)
 	log.Println("Done")
 }
