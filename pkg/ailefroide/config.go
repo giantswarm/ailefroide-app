@@ -33,6 +33,8 @@ type Config struct {
 	PagingEntries       int           `yaml:"itemsPerPage" default:"200"`
 	Timeout             time.Duration `yaml:"timeout" default:"100ms"`
 	CalendarCredentials []byte
+	Debug               bool
+	DebugTeam           string
 }
 
 func NewConfig(filename string) (*Config, error) {

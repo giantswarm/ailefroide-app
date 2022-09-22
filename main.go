@@ -23,11 +23,15 @@ const (
 func load() *aile.Config {
 	var (
 		configFile string
+		debug      bool
+		debugTeam  string
 		err        error
 		cfg        *aile.Config
 	)
 	flag.StringVar(&configFile, "config", os.Getenv("AILE_CONFIG_FILE"),
 		"Config filename - can also be set by environment variable `AILE_CONFIG_FILE`")
+	flag.BoolVar(&debug, "debug", false, "Turn on debugging in the application")
+	flag.StringVar(&debugTeam, "debugteam", "", "Team name for debugging purposes - required if debug is true")
 	flag.Parse()
 
 	if configFile == "" {
@@ -36,6 +40,10 @@ func load() *aile.Config {
 		err = fmt.Errorf("Config file does not exist or is unreadable")
 	} else if cfg, err = aile.NewConfig(configFile); err != nil {
 		//noop - just about assignment
+	}
+
+	if debug && debugTeam == "" {
+		err = fmt.Errorf("`debugTeam must be set if debug is true`")
 	}
 
 	if err != nil {
@@ -111,6 +119,6 @@ func main() {
 	}
 
 	log.Println("Creating handles")
-	//s.SlackHandles(teams)
+	s.SlackHandles(teams, cfg.Debug, cfg.DebugTeam)
 	log.Println("Done")
 }
