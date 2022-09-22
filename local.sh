@@ -4,6 +4,5 @@ export OPSGENIE_TOKEN=$(bwv '*/opsgenie?field=apikey' | jq -r .value)
 export PERSONIO_CLIENT_ID=$(bwv '*/personio?field=clientid'| jq -r .value)
 export PERSONIO_CLIENT_SECRET=$(bwv '*/personio?field=clientsecret'| jq -r .value)
 
-echo $OPSGENIE_TOKEN
 go build .
-time ./ailefroide -config config.yaml -debug true -debugTeam team-honeybadger
+time ./ailefroide -config config.yaml -debugteam "team-honeybadger" -debug true

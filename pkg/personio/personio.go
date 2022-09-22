@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 )
 
 const PERSONIO_API = "https://api.personio.de/v1"
@@ -62,9 +63,11 @@ func (p *Personio) Employees() (employees []Employee, err error) {
 
 	for _, item := range data.Data {
 		if item.Type == "Employee" {
+			var github string = strings.Trim(item.Attributes[p.ghFieldId]["value"].(string), "/")
+			github = strings.Split(github, "/")[len(strings.Split(github, "/"))-1]
 			emp := Employee{
 				Email:  item.Attributes["email"]["value"].(string),
-				Github: item.Attributes[p.ghFieldId]["value"].(string),
+				Github: github,
 			}
 			employees = append(employees, emp)
 		}

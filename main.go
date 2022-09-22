@@ -43,13 +43,15 @@ func load() *aile.Config {
 	}
 
 	if debug && debugTeam == "" {
-		err = fmt.Errorf("`debugTeam must be set if debug is true`")
+		err = fmt.Errorf("`debugteam must be set if debug is true`")
 	}
 
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	cfg.Debug = debug
+	cfg.DebugTeam = debugTeam
 	return cfg
 }
 
@@ -72,8 +74,7 @@ func main() {
 	)
 
 	if p, e := ap.New(cfg.PersonioClientId, cfg.PersonioClientSecret, cfg.PersonioGHFieldId); e == nil {
-		i, _ := p.Employees()
-		fmt.Printf("%+v\n", i)
+		people, _ = p.Employees()
 	}
 
 	g := ag.NewGithub(cfg)
@@ -107,13 +108,13 @@ func main() {
 	afkEvents = <-calchan
 
 	for _, t := range <-teamchan {
+		parseTeamMembers(t, slackUsers, afkEvents)
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
 		}
 		if topic, ok := topics[t.Name]; ok {
 			t.Topics = topic
 		}
-		parseTeamMembers(t, slackUsers, afkEvents)
 		o.WhoIsOnCall(t)
 		teams = append(teams, t)
 	}
