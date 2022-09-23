@@ -1,0 +1,31 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ template "helm.serviceAccountName" . }}
+  labels:
+{{ include "helm.labels" . | indent 4 }}
+rules:
+- apiGroups:
+  - extensions
+  resources:
+  - podsecuritypolicies
+  resourceNames:
+  - {{ include "helm.serviceAccountName" . }}
+  verbs:
+  - "use"
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: {{ template "helm.serviceAccountName" . }}
+  labels:
+{{ include "helm.labels" . | indent 4 }}
+subjects:
+- kind: ServiceAccount
+  name: {{ template "helm.serviceAccountName" . }}
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ template "helm.serviceAccountName" . }}
+  apiGroup: rbac.authorization.k8s.io

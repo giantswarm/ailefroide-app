@@ -1,0 +1,33 @@
+---
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: {{ template "helm.serviceAccountName" . }}
+  labels:
+{{ include "helm.labels" . | indent 4 }}
+    giantswarm.io/service-type: "managed"
+spec:
+  privileged: false
+  runAsUser:
+    rule: MustRunAsNonRoot
+  seLinux:
+    rule: RunAsAny
+  supplementalGroups:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  hostPID: false
+  hostIPC: false
+  hostNetwork: false
+  volumes:
+    - configMap
+    - secret
+    - hostPath
+    - persistentVolumeClaim
+  fsGroup:
+    rule: 'MustRunAs'
+    ranges:
+      - min: 1
+        max: 65535
+  readOnlyRootFilesystem: false

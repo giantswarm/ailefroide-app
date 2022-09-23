@@ -1,0 +1,6 @@
+skip-steps: test_all
+chart-dir: helm/ailefroide-app
+replace-chart-version-with-git: true
+replace-app-version-with-git: true
+generate-metadata: true
+catalog-base-url: https://giantswarm.github.io/giantswarm-playground-catalog/
