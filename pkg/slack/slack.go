@@ -152,7 +152,7 @@ func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan
 		err         error
 		count       int              = 0
 		membersChan chan aile.Member = make(chan aile.Member)
-		members     []aile.Member    = make([]aile.Member)
+		members     []aile.Member    = make([]aile.Member, 0)
 		done        chan bool        = make(chan bool)
 	)
 

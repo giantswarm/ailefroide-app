@@ -67,7 +67,7 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 	)
 
 	var (
-		teams                   = make([]*aile.Team)
+		teams                   = make([]*aile.Team, 0)
 		teamchan chan aile.Team = make(chan aile.Team)
 		count, i int            = 0, 0
 	)
