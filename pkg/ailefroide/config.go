@@ -45,10 +45,19 @@ func NewConfig(filename string) (*Config, error) {
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
+		return nil, err
 	}
-	err = yaml.Unmarshal(yamlFile, &cfg)
+
+	if err = yaml.Unmarshal(yamlFile, &cfg); err != nil {
+		log.Println("Unable to read config file or file is invalid")
+		return nil, err
+	}
+
 	c := &cfg.Config
-	defaults.Set(c)
+	if err := defaults.Set(c); err != nil {
+		log.Println("Unable to set defalt values on config")
+		return nil, err
+	}
 
 	if gt := os.Getenv("GITHUB_TOKEN"); gt != "" {
 		c.GithubToken = gt

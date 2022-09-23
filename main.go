@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	TEAM_PATTERN       = `^team-[a-z0-9]*$`
-	SUPPORT_PATTERN    = `^support-[a-z0-9]+(-[\w]+)?$`
-	GITHUB_URL_PATTERN = `^.*/github\.com/([^/]*).*$`
+	TEAM_PATTERN    = `^team-[a-z0-9]*$`
+	SUPPORT_PATTERN = `^support-[a-z0-9]+(-[\w]+)?$`
 )
 
 func load() *aile.Config {
@@ -39,7 +38,7 @@ func load() *aile.Config {
 	} else if _, err = os.Stat(configFile); err != nil {
 		err = fmt.Errorf("Config file does not exist or is unreadable")
 	} else if cfg, err = aile.NewConfig(configFile); err != nil {
-		//noop - just about assignment
+		log.Println("Config loaded")
 	}
 
 	if err != nil {

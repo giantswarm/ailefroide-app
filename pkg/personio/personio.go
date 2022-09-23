@@ -56,8 +56,7 @@ func (p *Personio) Employees() (employees []Employee, err error) {
 	}
 
 	defer response.Body.Close()
-	err = json.NewDecoder(response.Body).Decode(&data)
-	if err != nil {
+	if err = json.NewDecoder(response.Body).Decode(&data); err != nil {
 		return
 	}
 
@@ -89,7 +88,10 @@ func (p *Personio) getBearer(clientid, secretid string) (bearer string, err erro
 		buffer *bytes.Buffer = new(bytes.Buffer)
 	)
 
-	json.NewEncoder(buffer).Encode(data)
+	if err = json.NewEncoder(buffer).Encode(data); err != nil {
+		return
+	}
+
 	request, err = http.NewRequest("POST", PERSONIO_API+"/auth", buffer)
 	if err != nil {
 		return
@@ -111,7 +113,9 @@ func (p *Personio) getBearer(clientid, secretid string) (bearer string, err erro
 		} `json:"data"`
 	}
 
-	json.NewDecoder(response.Body).Decode(&body)
+	if err = json.NewDecoder(response.Body).Decode(&body); err != nil {
+		return
+	}
 	bearer = body.Data.Token
 	return
 }
