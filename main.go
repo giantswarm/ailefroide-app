@@ -15,9 +15,8 @@ import (
 )
 
 const (
-	TEAM_PATTERN       = `^team-[a-z0-9]*$`
-	SUPPORT_PATTERN    = `^support-[a-z0-9]+(-[\w]+)?$`
-	GITHUB_URL_PATTERN = `^.*/github\.com/([^/]*).*$`
+	TEAM_PATTERN    = `^team-[a-z0-9]*$`
+	SUPPORT_PATTERN = `^support-[a-z0-9]+(-[\w]+)?$`
 )
 
 func load() *aile.Config {

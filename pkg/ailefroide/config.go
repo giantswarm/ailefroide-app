@@ -48,7 +48,10 @@ func NewConfig(filename string) (*Config, error) {
 	}
 	err = yaml.Unmarshal(yamlFile, &cfg)
 	c := &cfg.Config
-	defaults.Set(c)
+	if err := defaults.Set(c); err != nil {
+		log.Println("Unable to set defalt values on config")
+		return nil, err
+	}
 
 	if gt := os.Getenv("GITHUB_TOKEN"); gt != "" {
 		c.GithubToken = gt

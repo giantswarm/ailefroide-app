@@ -150,10 +150,10 @@ func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan
 	log.Println("Retrieving users from slack")
 	var (
 		err         error
-		membersChan chan aile.Member = make(chan aile.Member, 0)
-		members     []aile.Member    = make([]aile.Member, 0)
 		count       int              = 0
-		done        chan bool        = make(chan bool, 0)
+		membersChan chan aile.Member = make(chan aile.Member)
+		members     []aile.Member    = make([]aile.Member)
+		done        chan bool        = make(chan bool)
 	)
 
 	go func(membersChan *chan aile.Member, count *int, expression string) {
@@ -353,7 +353,6 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 	}
 	*topchan <- topics
 	log.Println("Done retrieving slack topics")
-	return
 }
 
 // Create slack handles for support
@@ -415,9 +414,9 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 
 	for {
 		select {
-		case _ = <-teamsDone:
+		case <-teamsDone:
 			te++
-		case _ = <-topicsDone:
+		case <-topicsDone:
 			to++
 		}
 

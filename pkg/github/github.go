@@ -67,7 +67,7 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 	)
 
 	var (
-		teams                   = make([]*aile.Team, 0)
+		teams                   = make([]*aile.Team)
 		teamchan chan aile.Team = make(chan aile.Team)
 		count, i int            = 0, 0
 	)
@@ -100,7 +100,6 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 	}
 	log.Println("Done retrieving github teams")
 	*teamschan <- teams
-	return
 }
 
 func (g *Github) getTeamViaChannel(org, team string, teamchan *chan aile.Team) {
