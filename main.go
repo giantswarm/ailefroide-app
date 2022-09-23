@@ -38,7 +38,7 @@ func load() *aile.Config {
 	} else if _, err = os.Stat(configFile); err != nil {
 		err = fmt.Errorf("Config file does not exist or is unreadable")
 	} else if cfg, err = aile.NewConfig(configFile); err != nil {
-		//noop - just about assignment
+		log.Println("Config loaded")
 	}
 
 	if err != nil {

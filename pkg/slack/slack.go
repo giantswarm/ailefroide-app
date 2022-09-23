@@ -31,10 +31,8 @@ func NewSlack(token, expression string, pagingEntries int) *Slack {
 
 func (s *Slack) checkError(err error) error {
 	if rateLimitedError, ok := err.(*slack.RateLimitedError); ok {
-		select {
-		case <-time.After(rateLimitedError.RetryAfter):
-			err = nil
-		}
+		<-time.After(rateLimitedError.RetryAfter)
+		err = nil
 	}
 	if err != nil {
 		if err.Error() != "pagination complete" {
@@ -87,10 +85,9 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 	log.Println("Creating usergroup for", name)
 	for err == nil {
 		u, err = s.client.CreateUserGroup(group)
-		if err == nil {
+		if err == nil || s.checkError(err) != nil {
 			break
 		}
-		s.checkError(err)
 	}
 	ug <- u
 }
@@ -200,10 +197,10 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employ
 	log.Println("Retrieving personio users from slack")
 	var (
 		err         error
-		membersChan chan aile.Member = make(chan aile.Member, 0)
+		membersChan chan aile.Member = make(chan aile.Member)
 		members     []aile.Member    = make([]aile.Member, 0)
 		count       int              = 0
-		done        chan bool        = make(chan bool, 0)
+		done        chan bool        = make(chan bool)
 	)
 
 	go func(membersChan *chan aile.Member, count *int, people []ap.Employee) {
@@ -211,23 +208,24 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employ
 		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
 		for err == nil {
 			p, err = p.Next(ctx)
-			if err == nil {
-				for _, user := range p.Users {
-					go func(user slack.User) {
-						for _, person := range people {
-							if user.Profile.Email == person.Email {
-								*count++
-								*membersChan <- aile.Member{
-									Email:       person.Email,
-									SlackID:     user.ID,
-									GithubLogin: person.Github,
-								}
+			if s.checkError(err) != nil {
+				break
+			}
+
+			for _, user := range p.Users {
+				go func(user slack.User) {
+					for _, person := range people {
+						if user.Profile.Email == person.Email {
+							*count++
+							*membersChan <- aile.Member{
+								Email:       person.Email,
+								SlackID:     user.ID,
+								GithubLogin: person.Github,
 							}
 						}
-					}(user)
-				}
+					}
+				}(user)
 			}
-			s.checkError(err)
 		}
 		done <- true
 	}(&membersChan, &count, people)

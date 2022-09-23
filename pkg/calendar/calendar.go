@@ -6,7 +6,6 @@ import (
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
-	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/option"
@@ -31,7 +30,7 @@ func NewCalendar(cfg *aile.Config) *GoogleCalendar {
 		log.Fatalf("Unable to parse client secret file to config: %v", err)
 	}
 
-	client := conf.Client(oauth2.NoContext)
+	client := conf.Client(context.Background())
 
 	g.client, err = calendar.NewService(ctx, option.WithHTTPClient(client))
 	if err != nil {

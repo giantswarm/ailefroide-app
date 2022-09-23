@@ -46,7 +46,12 @@ func NewConfig(filename string) (*Config, error) {
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 	}
-	err = yaml.Unmarshal(yamlFile, &cfg)
+
+	if err = yaml.Unmarshal(yamlFile, &cfg); err != nil {
+		log.Println("Unable to read config file or file is invalid")
+		return nil, err
+	}
+
 	c := &cfg.Config
 	if err := defaults.Set(c); err != nil {
 		log.Println("Unable to set defalt values on config")
