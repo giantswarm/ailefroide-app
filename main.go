@@ -42,10 +42,6 @@ func load() *aile.Config {
 		//noop - just about assignment
 	}
 
-	if debug && debugTeam == "" {
-		err = fmt.Errorf("`debugteam must be set if debug is true`")
-	}
-
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

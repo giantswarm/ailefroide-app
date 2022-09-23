@@ -5,4 +5,4 @@ export PERSONIO_CLIENT_ID=$(bwv '*/personio?field=clientid'| jq -r .value)
 export PERSONIO_CLIENT_SECRET=$(bwv '*/personio?field=clientsecret'| jq -r .value)
 
 go build .
-time ./ailefroide -config config.yaml -debugteam "team-honeybadger" -debug true
+time ./ailefroide -config examples/config.yaml -debug true

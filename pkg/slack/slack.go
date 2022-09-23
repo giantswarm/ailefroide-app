@@ -364,7 +364,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 		supportTopics = make(map[string][]string)
 	)
 	for _, team := range teams {
-		if debug && team.Name != debugTeam {
+		if debugTeam != "" && team.Name != debugTeam {
 			continue
 		}
 
