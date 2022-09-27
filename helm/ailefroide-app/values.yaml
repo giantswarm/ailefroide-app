@@ -1,0 +1,63 @@
+# Default values for helm.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+debug: false
+
+envSecret:
+  name: ailefroide-app-environment
+  values:
+    GITHUB_TOKEN: ""
+    SLACK_TOKEN: ""
+    OPSGENIE_TOKEN: ""
+    PERSONIO_CLIENT_ID: ""
+    PERSONIO_CLIENT_SECRET: ""
+
+configMap:
+  name: ailefroide-config
+  values:
+    config.yaml: ""
+    token.json: ""
+
+image:
+  repository: quay.io/giantswarm/ailefroide
+  pullPolicy: Always
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ''
+fullnameOverride: ''
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name:
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  runAsGroup: 1000
+  # fsGroup: 2000
+
+securityContext:
+  runAsUser: 1000
+  runAsGroup: 3000
+  readOnlyRootFilesystem: true
+
+resources:
+  limits:
+    cpu: 250m
+    memory: 256Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+rotation:
+  schedule: "0 * * * 1-5"

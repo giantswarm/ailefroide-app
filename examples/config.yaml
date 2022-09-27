@@ -1,0 +1,21 @@
+config:
+  # Specifies the domain the system is running against
+  domain: "giantswarm.io"
+
+  # Specifies the github organisation to execute against
+  organisation: giantswarm
+
+  # A github team containing a list of account engineers
+  accountEngineers: chapter-ae
+
+  # A github team containing the solution architects
+  solutionArchitects: chapter-se
+
+  # The google calendar to use for AFK entries
+  calendarId: giantswarm.io_u9j5eaid81sl9b8cd73novr7do@group.calendar.google.com
+
+  # A path to the calendar service account credentials file
+  calendarCredentialsFile: token.json
+
+  # The ID of the custom field in personio used for Github usernames
+  personioGithubFieldId: dynamic_3196204
