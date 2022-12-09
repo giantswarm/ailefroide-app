@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Move github to github-app
+
 ## [0.1.0] - 2022-09-27
 
 - Release first stable version.
