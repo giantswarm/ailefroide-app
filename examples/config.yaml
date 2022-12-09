@@ -11,6 +11,9 @@ config:
   # A github team containing the solution architects
   solutionArchitects: chapter-se
 
+  # A github team containing product owners
+  productOwners: product-owners
+
   # The google calendar to use for AFK entries
   calendarId: giantswarm.io_u9j5eaid81sl9b8cd73novr7do@group.calendar.google.com
 
@@ -19,3 +22,9 @@ config:
 
   # The ID of the custom field in personio used for Github usernames
   personioGithubFieldId: dynamic_3196204
+
+  # github app settings
+  github:
+    appId: 270662
+    installationId: 32026483
+    privateKey: ailefroide-app.2022-12-08.private-key.pem

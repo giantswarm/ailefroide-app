@@ -377,7 +377,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 		}
 
 		for _, m := range team.Members {
-			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer) && (debug && !m.Afk)
+			var primary bool = (m.IsSolutionArchitect || m.IsAccountEngineer || m.IsProductOwner) && (debug && !m.Afk)
 			if (primary || m.Oncall) && m.SlackID != "" {
 				members = append(members, m.SlackID)
 			}

@@ -12,6 +12,12 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+type Github struct {
+	AppId          int64  `yaml:"appId"`
+	InstallationId int64  `yaml:"installationId"`
+	PrivateKey     string `yaml:"privateKey"`
+}
+
 type Config struct {
 	Domain             string `yaml:"domain"`
 	Organisation       string `yaml:"organisation"`
@@ -23,11 +29,11 @@ type Config struct {
 
 	// Credentials
 	CalendarTokenFile    string `yaml:"calendarCredentialsFile,omitempty"`
-	GithubToken          string `yaml:"githubToken,omitempty"`
 	OpsGenieToken        string `yaml:"opsGenieToken,omitempty"`
 	SlackToken           string `yaml:"slackToken,omitempty"`
 	PersonioClientId     string `yaml:"persionioClientId"`
 	PersonioClientSecret string `yaml:"persionioClientSecret"`
+	Gh                   Github `yaml:"github"`
 
 	Location            string        `yaml:"location" default:"Europe/Berlin"`
 	PagingEntries       int           `yaml:"itemsPerPage" default:"200"`
@@ -59,9 +65,6 @@ func NewConfig(filename string) (*Config, error) {
 		return nil, err
 	}
 
-	if gt := os.Getenv("GITHUB_TOKEN"); gt != "" {
-		c.GithubToken = gt
-	}
 	if st := os.Getenv("SLACK_TOKEN"); st != "" {
 		c.SlackToken = st
 	}
@@ -90,9 +93,6 @@ func NewConfig(filename string) (*Config, error) {
 
 func (c *Config) validate() error {
 	var messages []string = make([]string, 0)
-	if c.GithubToken == "" {
-		messages = append(messages, "GITHUB_TOKEN is missing")
-	}
 	if c.SlackToken == "" {
 		messages = append(messages, "SLACK_TOKEN is missing")
 	}
