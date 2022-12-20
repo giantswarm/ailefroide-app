@@ -56,14 +56,6 @@ Create the name of the service account to use
 {{- end -}}
 {{- end -}}
 
-{{- define "ailefroide.image" -}}
-{{- if .Values.image.tag -}}
-{{ .Values.image.repository }}:{{ .Values.image.tag }}
-{{- else -}}
-{{ .Values.image.repository }}
-{{- end -}}
-{{- end -}}
-
 {{/*
 Lookup secret values if the secret exists or create them from values file otherwise
 */}}
