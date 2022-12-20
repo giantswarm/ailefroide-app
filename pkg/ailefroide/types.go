@@ -9,6 +9,7 @@ type Member struct {
 	SlackID             string
 	IsSolutionArchitect bool
 	IsAccountEngineer   bool
+	IsProductOwner      bool
 	Afk                 bool
 	Oncall              bool
 }
@@ -36,6 +37,16 @@ func (t *Team) HasSolutionArchitect() bool {
 func (t *Team) HasAccountEngineer() bool {
 	for _, m := range t.Members {
 		if m.IsAccountEngineer {
+			return true
+		}
+	}
+	return false
+}
+
+// Is there a product owner in this team
+func (t *Team) HasProductOwner() bool {
+	for _, m := range t.Members {
+		if m.IsProductOwner {
 			return true
 		}
 	}

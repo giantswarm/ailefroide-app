@@ -19,7 +19,7 @@ spec:
           imagePullSecrets:
             {{- toYaml .Values.imagePullSecrets | nindent 12 }}
           containers:
-          - name: slackhandlerotation
+          - name: ailefroide
             image: {{ printf "%s" (include "ailefroide.image" . ) }}
             envFrom:
               - secretRef:

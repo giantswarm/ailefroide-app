@@ -3,11 +3,12 @@ package github
 import (
 	"context"
 	"log"
+	"net/http"
 	"regexp"
 
+	"github.com/bradleyfalzon/ghinstallation/v2"
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	"github.com/google/go-github/v47/github"
-	"golang.org/x/oauth2"
 )
 
 type Github struct {
@@ -15,6 +16,7 @@ type Github struct {
 	organisation       string
 	se                 string
 	ae                 string
+	po                 string
 	solutionArchitects []*aile.Member
 	accountEngineers   []*aile.Member
 	productOwners      []*aile.Member
@@ -26,18 +28,11 @@ func NewGithub(cfg *aile.Config) *Github {
 		organisation: cfg.Organisation,
 		se:           cfg.SolutionArchitects,
 		ae:           cfg.AccountEngineers,
+		po:           cfg.ProductOwners,
 	}
 
-	var (
-		tokenSource = oauth2.StaticTokenSource(
-			&oauth2.Token{
-				AccessToken: cfg.GithubToken,
-			},
-		)
-		ctx         = context.Background()
-		oauthClient = oauth2.NewClient(ctx, tokenSource)
-	)
-	g.client = github.NewClient(oauthClient)
+	itr, _ := ghinstallation.NewKeyFromFile(http.DefaultTransport, cfg.Gh.AppId, cfg.Gh.InstallationId, cfg.Gh.PrivateKey)
+	g.client = github.NewClient(&http.Client{Transport: itr})
 
 	g.solutionArchitects = make([]*aile.Member, 0)
 	g.accountEngineers = make([]*aile.Member, 0)
@@ -130,8 +125,9 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 			var member aile.Member = aile.Member{
 				GithubLogin: login,
 			}
-			if team != g.ae && team != g.se {
+			if team != g.ae && team != g.se && team != g.po {
 				member.IsAccountEngineer = g.containsLogin(login, g.accountEngineers)
+				member.IsProductOwner = g.containsLogin(login, g.productOwners)
 				// You can be an account engineer, or a solution architect but not both.
 				member.IsSolutionArchitect = g.containsLogin(login, g.solutionArchitects) && !member.IsAccountEngineer
 			}
