@@ -20,7 +20,7 @@ spec:
             {{- toYaml .Values.imagePullSecrets | nindent 12 }}
           containers:
           - name: ailefroide
-            image: {{ printf "%s" (include "ailefroide.image" . ) }}
+            image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
             envFrom:
               - secretRef:
                   name: {{ .Values.envSecret.name }}
