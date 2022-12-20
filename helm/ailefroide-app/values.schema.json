@@ -19,6 +19,9 @@
                         },
                         "token.json": {
                             "type": "string"
+                        },
+                        "github.pem": {
+                            "type": "string"
                         }
                     }
                 }
@@ -36,9 +39,6 @@
                 "values": {
                     "type": "object",
                     "properties": {
-                        "GITHUB_TOKEN": {
-                            "type": "string"
-                        },
                         "OPSGENIE_TOKEN": {
                             "type": "string"
                         },

@@ -6,7 +6,6 @@ debug: false
 envSecret:
   name: ailefroide-app-environment
   values:
-    GITHUB_TOKEN: ""
     SLACK_TOKEN: ""
     OPSGENIE_TOKEN: ""
     PERSONIO_CLIENT_ID: ""
@@ -17,6 +16,7 @@ configMap:
   values:
     config.yaml: ""
     token.json: ""
+    github.pem: ""
 
 image:
   repository: quay.io/giantswarm/ailefroide
@@ -38,7 +38,6 @@ podSecurityContext:
   runAsNonRoot: true
   runAsUser: 1000
   runAsGroup: 1000
-  # fsGroup: 2000
 
 securityContext:
   runAsUser: 1000

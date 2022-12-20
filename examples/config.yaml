@@ -27,4 +27,4 @@ config:
   github:
     appId: 270662
     installationId: 32026483
-    privateKey: ailefroide-app.2022-12-08.private-key.pem
+    privateKey: github.pem
