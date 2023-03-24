@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"strings"
-	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
@@ -67,15 +66,13 @@ func (o *Opsgenie) WhoIsOnCall(team *aile.Team) {
 
 	for _, scheduleName := range schedules {
 		var (
-			flat           bool      = false
-			date           time.Time = time.Now()
+			flat           bool = false
 			scheduleResult *schedule.GetOnCallsResult
 			err            error
 		)
 
 		if scheduleResult, err = o.client.GetOnCalls(context.TODO(), &schedule.GetOnCallsRequest{
 			Flat:                   &flat,
-			Date:                   &date,
 			ScheduleIdentifierType: schedule.Name,
 			ScheduleIdentifier:     scheduleName,
 		}); err != nil {

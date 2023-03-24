@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
@@ -20,6 +21,7 @@ type Github struct {
 	solutionArchitects []*aile.Member
 	accountEngineers   []*aile.Member
 	productOwners      []*aile.Member
+	cfg                *aile.Config
 }
 
 func NewGithub(cfg *aile.Config) *Github {
@@ -29,6 +31,7 @@ func NewGithub(cfg *aile.Config) *Github {
 		se:           cfg.SolutionArchitects,
 		ae:           cfg.AccountEngineers,
 		po:           cfg.ProductOwners,
+		cfg:          cfg,
 	}
 
 	itr, _ := ghinstallation.NewKeyFromFile(http.DefaultTransport, cfg.Gh.AppId, cfg.Gh.InstallationId, cfg.Gh.PrivateKey)
@@ -141,12 +144,54 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 
 		opts.Page = r.NextPage
 	}
+
+	// Add in any additional users from config
+	var exists bool = false
+	for k := range g.cfg.Teams {
+		if k == team {
+			exists = true
+			break
+		}
+	}
+
+	if exists {
+		for _, m := range g.cfg.Teams[team].ExtraCover {
+			m = strings.Trim(m, "@")
+			m = strings.ToLower(m)
+			var member aile.Member = aile.Member{}
+
+			member.GithubLogin = m
+			if strings.Contains(m, "@") {
+				member.Email = m
+				member.GithubLogin = ""
+			}
+
+			member.IsAccountEngineer = g.containsLogin(m, g.accountEngineers)
+			member.IsProductOwner = g.containsLogin(m, g.productOwners)
+			// You can be an account engineer, or a solution architect but not both.
+			member.IsSolutionArchitect = g.containsLogin(m, g.solutionArchitects) && !member.IsAccountEngineer
+			members = append(members, &member)
+		}
+	}
+
 	return
+}
+
+func (g *Github) IsAccountEngineer(login string) bool {
+	return g.containsLogin(login, g.accountEngineers)
+}
+
+func (g *Github) IsProductOwner(login string) bool {
+	return g.containsLogin(login, g.productOwners)
+}
+
+func (g *Github) IsSolutionArchitect(login string) bool {
+	return g.containsLogin(login, g.solutionArchitects)
 }
 
 func (g *Github) containsLogin(login string, team []*aile.Member) bool {
 	for _, member := range team {
-		if login == member.GithubLogin {
+		if strings.EqualFold(login, member.GithubLogin) {
 			return true
 		}
 	}

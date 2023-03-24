@@ -65,8 +65,8 @@ func (p *Personio) Employees() (employees []Employee, err error) {
 			var github string = strings.Trim(item.Attributes[p.ghFieldId]["value"].(string), "/")
 			github = strings.Split(github, "/")[len(strings.Split(github, "/"))-1]
 			emp := Employee{
-				Email:  item.Attributes["email"]["value"].(string),
-				Github: github,
+				Email:  strings.ToLower(item.Attributes["email"]["value"].(string)),
+				Github: strings.ToLower(github),
 			}
 			employees = append(employees, emp)
 		}

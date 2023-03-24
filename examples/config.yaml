@@ -1,3 +1,4 @@
+---
 config:
   # Specifies the domain the system is running against
   domain: "giantswarm.io"
@@ -15,16 +16,38 @@ config:
   productOwners: product-owners
 
   # The google calendar to use for AFK entries
-  calendarId: giantswarm.io_u9j5eaid81sl9b8cd73novr7do@group.calendar.google.com
+  # This should be the full calendar URL
+  calendarId:
 
   # A path to the calendar service account credentials file
   calendarCredentialsFile: token.json
 
   # The ID of the custom field in personio used for Github usernames
-  personioGithubFieldId: dynamic_3196204
+  personioGithubFieldId:
 
   # github app settings
   github:
-    appId: 270662
-    installationId: 32026483
+    # Set this to your github app id
+    appId:
+    # set this to the installation id for your github app
+    # - you may need to get this from the app URL in github
+    installationId:
+    # Set this to the name of your certificate PEM file
     privateKey: github.pem
+
+  # team specific custom settings
+  teams:
+    # Copy this block and add it to the deployment values
+    team-EXAMPLE:
+      # Enables or disables rotation for your team. Default true there is no entry for your team, false if not.
+      skipRotation: true
+
+      # Include your teams product owner. Default true if not specified
+      # includePo: true
+
+      # Include your teams on call engineer. Default true if not specified
+      # includeOCE: true
+
+      # A list of Github usernames or email addresses of additional people to include in your team
+      # This **should not** include existing team members
+      # extraCover: []
