@@ -14,6 +14,8 @@ import (
 	as "github.com/giantswarm/ailefroide/pkg/slack"
 )
 
+// Matching patterns for team and support handles
+// lint:ignore noallcaps
 const (
 	TEAM_PATTERN    = `^team-[a-z0-9]*$`
 	SUPPORT_PATTERN = `^support-[a-z0-9]+(-[\w]+)?$`
@@ -50,14 +52,24 @@ func load() *aile.Config {
 	return cfg
 }
 
-func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string) {
-	for _, u := range team.Members {
-		for _, i := range slackUsers {
-			if i.GithubLogin == u.GithubLogin {
+func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string, g *ag.Github) {
+	for k, u := range team.Members {
+		for s, i := range slackUsers {
+			if u.GithubLogin != "" && (i.GithubLogin == u.GithubLogin) {
 				u.SlackID = i.SlackID
 				u.Email = i.Email
-				u.Afk = aile.ContainsString(i.Email, afkEvents)
+				team.Members[k] = u
+			} else if i.Email != "" && (i.Email == u.Email) {
+				team.Members[k] = &slackUsers[s]
 			}
+
+			var login string = team.Members[k].GithubLogin
+			team.Members[k].IsAccountEngineer = g.IsAccountEngineer(login)
+			team.Members[k].IsProductOwner = g.IsProductOwner(login)
+			team.Members[k].IsSolutionArchitect = g.IsSolutionArchitect(login)
+			team.Members[k].IsPlatformArchitect = g.IsPlatformArchitect(login)
+			team.Members[k].IsSiteReliabilityEngineer = g.IsSiteReliabilityEngineer(login)
+			team.Members[k].Afk = aile.ContainsString(team.Members[k].Email, afkEvents)
 		}
 	}
 }
@@ -73,7 +85,7 @@ func main() {
 	}
 
 	g := ag.NewGithub(cfg)
-	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries)
+	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries, cfg.Teams)
 	c := ac.NewCalendar(cfg)
 	o := ao.NewOpsGenie(cfg.OpsGenieToken, c)
 
@@ -103,7 +115,7 @@ func main() {
 	afkEvents = <-calchan
 
 	for _, t := range <-teamchan {
-		parseTeamMembers(t, slackUsers, afkEvents)
+		parseTeamMembers(t, slackUsers, afkEvents, g)
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
 		}

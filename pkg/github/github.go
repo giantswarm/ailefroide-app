@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
@@ -12,14 +13,19 @@ import (
 )
 
 type Github struct {
-	client             *github.Client
-	organisation       string
-	se                 string
-	ae                 string
-	po                 string
-	solutionArchitects []*aile.Member
-	accountEngineers   []*aile.Member
-	productOwners      []*aile.Member
+	client                   *github.Client
+	organisation             string
+	se                       string
+	ae                       string
+	po                       string
+	sre                      string
+	pa                       string
+	solutionArchitects       []*aile.Member
+	accountEngineers         []*aile.Member
+	productOwners            []*aile.Member
+	platformArchitects       []*aile.Member
+	siteReliabilityEngineers []*aile.Member
+	cfg                      *aile.Config
 }
 
 func NewGithub(cfg *aile.Config) *Github {
@@ -29,6 +35,9 @@ func NewGithub(cfg *aile.Config) *Github {
 		se:           cfg.SolutionArchitects,
 		ae:           cfg.AccountEngineers,
 		po:           cfg.ProductOwners,
+		pa:           cfg.PlatformArchitects,
+		sre:          cfg.SREs,
+		cfg:          cfg,
 	}
 
 	itr, _ := ghinstallation.NewKeyFromFile(http.DefaultTransport, cfg.Gh.AppId, cfg.Gh.InstallationId, cfg.Gh.PrivateKey)
@@ -37,17 +46,26 @@ func NewGithub(cfg *aile.Config) *Github {
 	g.solutionArchitects = make([]*aile.Member, 0)
 	g.accountEngineers = make([]*aile.Member, 0)
 	g.productOwners = make([]*aile.Member, 0)
+	g.siteReliabilityEngineers = make([]*aile.Member, 0)
+	g.platformArchitects = make([]*aile.Member, 0)
 
 	log.Println("Retrieving principle teams from github")
-	if cfg.SolutionArchitects != "" {
-		g.solutionArchitects = g.getMembers(g.organisation, cfg.SolutionArchitects)
+	if g.se != "" {
+		g.solutionArchitects = g.getMembers(g.organisation, g.se)
 	}
-	if cfg.AccountEngineers != "" {
-		g.accountEngineers = g.getMembers(g.organisation, cfg.AccountEngineers)
+	if g.ae != "" {
+		g.accountEngineers = g.getMembers(g.organisation, g.ae)
 	}
-	if cfg.ProductOwners != "" {
-		g.productOwners = g.getMembers(g.organisation, cfg.ProductOwners)
+	if g.po != "" {
+		g.productOwners = g.getMembers(g.organisation, g.po)
 	}
+	if g.pa != "" {
+		g.platformArchitects = g.getMembers(g.organisation, g.pa)
+	}
+	if g.sre != "" {
+		g.siteReliabilityEngineers = g.getMembers(g.organisation, g.sre)
+	}
+
 	log.Println("Done setting up github")
 
 	return &g
@@ -125,12 +143,6 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 			var member aile.Member = aile.Member{
 				GithubLogin: login,
 			}
-			if team != g.ae && team != g.se && team != g.po {
-				member.IsAccountEngineer = g.containsLogin(login, g.accountEngineers)
-				member.IsProductOwner = g.containsLogin(login, g.productOwners)
-				// You can be an account engineer, or a solution architect but not both.
-				member.IsSolutionArchitect = g.containsLogin(login, g.solutionArchitects) && !member.IsAccountEngineer
-			}
 
 			members = append(members, &member)
 		}
@@ -141,12 +153,57 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 
 		opts.Page = r.NextPage
 	}
+
+	// Add in any additional users from config
+	var exists bool = false
+	for k := range g.cfg.Teams {
+		if k == team {
+			exists = true
+			break
+		}
+	}
+
+	if exists {
+		for _, m := range g.cfg.Teams[team].ExtraCover {
+			m = strings.Trim(m, "@")
+			m = strings.ToLower(m)
+			var member aile.Member = aile.Member{}
+
+			member.GithubLogin = m
+			if strings.Contains(m, "@") {
+				member.Email = m
+				member.GithubLogin = ""
+			}
+			members = append(members, &member)
+		}
+	}
+
 	return
+}
+
+func (g *Github) IsAccountEngineer(login string) bool {
+	return g.containsLogin(login, g.accountEngineers)
+}
+
+func (g *Github) IsProductOwner(login string) bool {
+	return g.containsLogin(login, g.productOwners)
+}
+
+func (g *Github) IsSolutionArchitect(login string) bool {
+	return g.containsLogin(login, g.solutionArchitects) && !g.IsAccountEngineer(login)
+}
+
+func (g *Github) IsPlatformArchitect(login string) bool {
+	return g.containsLogin(login, g.platformArchitects)
+}
+
+func (g *Github) IsSiteReliabilityEngineer(login string) bool {
+	return g.containsLogin(login, g.siteReliabilityEngineers)
 }
 
 func (g *Github) containsLogin(login string, team []*aile.Member) bool {
 	for _, member := range team {
-		if login == member.GithubLogin {
+		if strings.EqualFold(login, member.GithubLogin) {
 			return true
 		}
 	}

@@ -18,14 +18,26 @@ type Github struct {
 	PrivateKey     string `yaml:"privateKey"`
 }
 
+type TeamSettings struct {
+	SkipRotation             bool     `yaml:"skipRotation" default:"false"`
+	IncludeProductOwner      bool     `yaml:"includePo" default:"true"`
+	IncludeOnCallEngineer    bool     `yaml:"includeOCE" default:"true"`
+	IncludePlatformArchitect bool     `yaml:"includePa" default:"false"`
+	IncludeSRE               bool     `yaml:"includeSRE" default:"false"`
+	ExtraCover               []string `yaml:"extraCover"`
+}
+
 type Config struct {
-	Domain             string `yaml:"domain"`
-	Organisation       string `yaml:"organisation"`
-	AccountEngineers   string `yaml:"accountEngineers"`
-	SolutionArchitects string `yaml:"solutionArchitects"`
-	ProductOwners      string `yaml:"productOwners"`
-	AfkCalendar        string `yaml:"calendarId"`
-	PersonioGHFieldId  string `yaml:"personioGithubFieldId"`
+	Domain             string                  `yaml:"domain"`
+	Organisation       string                  `yaml:"organisation"`
+	AccountEngineers   string                  `yaml:"accountEngineers"`
+	SolutionArchitects string                  `yaml:"solutionArchitects"`
+	ProductOwners      string                  `yaml:"productOwners"`
+	PlatformArchitects string                  `yaml:"platformArchitects"`
+	SREs               string                  `yaml:"siteReliabilityEngineers"`
+	AfkCalendar        string                  `yaml:"calendarId"`
+	PersonioGHFieldId  string                  `yaml:"personioGithubFieldId"`
+	Teams              map[string]TeamSettings `yaml:"teams"`
 
 	// Credentials
 	CalendarTokenFile    string `yaml:"calendarCredentialsFile,omitempty"`
@@ -88,6 +100,8 @@ func NewConfig(filename string) (*Config, error) {
 			err = fmt.Errorf("Unable to read client secret file: %v", err)
 		}
 	}
+
+	//os.Setenv("TZ", c.Location)
 	return c, err
 }
 
