@@ -28,8 +28,7 @@ spec:
               - "/opt/ailefroide"
               - "-config"
               - "/etc/ailefroide/config.yaml"
-              - "-debug"
-              - {{ .Values.debug }}
+              - "-debug {{ .Values.debug }}"
             securityContext:
               {{- toYaml .Values.securityContext | nindent 14 }}
             resources:
