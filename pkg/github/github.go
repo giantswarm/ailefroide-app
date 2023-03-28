@@ -145,8 +145,6 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 			}
 
 			members = append(members, &member)
-			/*if team != g.ae && team != g.se && team != g.po {
-			}*/
 		}
 
 		if r.NextPage == 0 {
