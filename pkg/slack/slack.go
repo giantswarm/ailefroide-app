@@ -369,9 +369,11 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 		teamTopics                        = make(map[string][]string)
 		supportTopics                     = make(map[string][]string)
 		defaultSettings aile.TeamSettings = aile.TeamSettings{
-			SkipRotation:          true,
-			IncludeOnCallEngineer: true,
-			IncludeProductOwner:   true,
+			SkipRotation:             true,
+			IncludeOnCallEngineer:    true,
+			IncludeProductOwner:      true,
+			IncludeSRE:               false,
+			IncludePlatformArchitect: false,
 		}
 	)
 
@@ -406,11 +408,14 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 
 		for _, m := range team.Members {
 			var (
-				includeProductOwner bool = (m.IsProductOwner && teamSettings.IncludeProductOwner)
-				includeOncall       bool = (m.Oncall && teamSettings.IncludeOnCallEngineer)
-				primary             bool = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
+				includeProductOwner     bool = (m.IsProductOwner && teamSettings.IncludeProductOwner)
+				includePlaformArchitect bool = (m.IsPlatformArchitect && teamSettings.IncludePlatformArchitect)
+				includeSRE              bool = (m.IsSiteReliabilityEngineer && teamSettings.IncludeSRE)
+				includeOncall           bool = (m.Oncall && teamSettings.IncludeOnCallEngineer)
+				primary                 bool = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
+				secondary               bool = (includeOncall || includePlaformArchitect || includeSRE)
 			)
-			if (primary || includeOncall) && m.SlackID != "" && (debug && !m.Afk) {
+			if (primary || secondary) && m.SlackID != "" && !m.Afk {
 				if debug {
 					members = append(members, m.Email)
 				} else {

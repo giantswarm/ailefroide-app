@@ -13,15 +13,19 @@ import (
 )
 
 type Github struct {
-	client             *github.Client
-	organisation       string
-	se                 string
-	ae                 string
-	po                 string
-	solutionArchitects []*aile.Member
-	accountEngineers   []*aile.Member
-	productOwners      []*aile.Member
-	cfg                *aile.Config
+	client                   *github.Client
+	organisation             string
+	se                       string
+	ae                       string
+	po                       string
+	sre                      string
+	pa                       string
+	solutionArchitects       []*aile.Member
+	accountEngineers         []*aile.Member
+	productOwners            []*aile.Member
+	platformArchitects       []*aile.Member
+	siteReliabilityEngineers []*aile.Member
+	cfg                      *aile.Config
 }
 
 func NewGithub(cfg *aile.Config) *Github {
@@ -31,6 +35,8 @@ func NewGithub(cfg *aile.Config) *Github {
 		se:           cfg.SolutionArchitects,
 		ae:           cfg.AccountEngineers,
 		po:           cfg.ProductOwners,
+		pa:           cfg.PlatformArchitects,
+		sre:          cfg.SREs,
 		cfg:          cfg,
 	}
 
@@ -40,17 +46,26 @@ func NewGithub(cfg *aile.Config) *Github {
 	g.solutionArchitects = make([]*aile.Member, 0)
 	g.accountEngineers = make([]*aile.Member, 0)
 	g.productOwners = make([]*aile.Member, 0)
+	g.siteReliabilityEngineers = make([]*aile.Member, 0)
+	g.platformArchitects = make([]*aile.Member, 0)
 
 	log.Println("Retrieving principle teams from github")
-	if cfg.SolutionArchitects != "" {
-		g.solutionArchitects = g.getMembers(g.organisation, cfg.SolutionArchitects)
+	if g.se != "" {
+		g.solutionArchitects = g.getMembers(g.organisation, g.se)
 	}
-	if cfg.AccountEngineers != "" {
-		g.accountEngineers = g.getMembers(g.organisation, cfg.AccountEngineers)
+	if g.ae != "" {
+		g.accountEngineers = g.getMembers(g.organisation, g.ae)
 	}
-	if cfg.ProductOwners != "" {
-		g.productOwners = g.getMembers(g.organisation, cfg.ProductOwners)
+	if g.po != "" {
+		g.productOwners = g.getMembers(g.organisation, g.po)
 	}
+	if g.pa != "" {
+		g.platformArchitects = g.getMembers(g.organisation, g.pa)
+	}
+	if g.sre != "" {
+		g.siteReliabilityEngineers = g.getMembers(g.organisation, g.sre)
+	}
+
 	log.Println("Done setting up github")
 
 	return &g
@@ -128,14 +143,10 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 			var member aile.Member = aile.Member{
 				GithubLogin: login,
 			}
-			if team != g.ae && team != g.se && team != g.po {
-				member.IsAccountEngineer = g.containsLogin(login, g.accountEngineers)
-				member.IsProductOwner = g.containsLogin(login, g.productOwners)
-				// You can be an account engineer, or a solution architect but not both.
-				member.IsSolutionArchitect = g.containsLogin(login, g.solutionArchitects) && !member.IsAccountEngineer
-			}
 
 			members = append(members, &member)
+			/*if team != g.ae && team != g.se && team != g.po {
+			}*/
 		}
 
 		if r.NextPage == 0 {
@@ -165,11 +176,6 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 				member.Email = m
 				member.GithubLogin = ""
 			}
-
-			member.IsAccountEngineer = g.containsLogin(m, g.accountEngineers)
-			member.IsProductOwner = g.containsLogin(m, g.productOwners)
-			// You can be an account engineer, or a solution architect but not both.
-			member.IsSolutionArchitect = g.containsLogin(m, g.solutionArchitects) && !member.IsAccountEngineer
 			members = append(members, &member)
 		}
 	}
@@ -186,7 +192,15 @@ func (g *Github) IsProductOwner(login string) bool {
 }
 
 func (g *Github) IsSolutionArchitect(login string) bool {
-	return g.containsLogin(login, g.solutionArchitects)
+	return g.containsLogin(login, g.solutionArchitects) && !g.IsAccountEngineer(login)
+}
+
+func (g *Github) IsPlatformArchitect(login string) bool {
+	return g.containsLogin(login, g.platformArchitects)
+}
+
+func (g *Github) IsSiteReliabilityEngineer(login string) bool {
+	return g.containsLogin(login, g.siteReliabilityEngineers)
 }
 
 func (g *Github) containsLogin(login string, team []*aile.Member) bool {

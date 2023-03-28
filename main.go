@@ -8,13 +8,14 @@ import (
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
-	"github.com/giantswarm/ailefroide/pkg/github"
 	ag "github.com/giantswarm/ailefroide/pkg/github"
 	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
 	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	as "github.com/giantswarm/ailefroide/pkg/slack"
 )
 
+// Matching patterns for team and support handles
+// lint:ignore noallcaps
 const (
 	TEAM_PATTERN    = `^team-[a-z0-9]*$`
 	SUPPORT_PATTERN = `^support-[a-z0-9]+(-[\w]+)?$`
@@ -51,21 +52,24 @@ func load() *aile.Config {
 	return cfg
 }
 
-func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string, g *github.Github) {
+func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string, g *ag.Github) {
 	for k, u := range team.Members {
 		for s, i := range slackUsers {
 			if u.GithubLogin != "" && (i.GithubLogin == u.GithubLogin) {
 				u.SlackID = i.SlackID
 				u.Email = i.Email
-				u.Afk = aile.ContainsString(i.Email, afkEvents)
 				team.Members[k] = u
 			} else if i.Email != "" && (i.Email == u.Email) {
-				slackUsers[s].IsAccountEngineer = g.IsAccountEngineer(i.GithubLogin)
-				slackUsers[s].IsProductOwner = g.IsProductOwner(i.GithubLogin)
-				slackUsers[s].IsSolutionArchitect = g.IsSolutionArchitect(i.GithubLogin)
-				slackUsers[s].Afk = aile.ContainsString(i.Email, afkEvents)
 				team.Members[k] = &slackUsers[s]
 			}
+
+			var login string = team.Members[k].GithubLogin
+			team.Members[k].IsAccountEngineer = g.IsAccountEngineer(login)
+			team.Members[k].IsProductOwner = g.IsProductOwner(login)
+			team.Members[k].IsSolutionArchitect = g.IsSolutionArchitect(login)
+			team.Members[k].IsPlatformArchitect = g.IsPlatformArchitect(login)
+			team.Members[k].IsSiteReliabilityEngineer = g.IsSiteReliabilityEngineer(login)
+			team.Members[k].Afk = aile.ContainsString(team.Members[k].Email, afkEvents)
 		}
 	}
 }
@@ -111,10 +115,10 @@ func main() {
 	afkEvents = <-calchan
 
 	for _, t := range <-teamchan {
+		parseTeamMembers(t, slackUsers, afkEvents, g)
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
 		}
-		parseTeamMembers(t, slackUsers, afkEvents, g)
 		if topic, ok := topics[t.Name]; ok {
 			t.Topics = topic
 		}

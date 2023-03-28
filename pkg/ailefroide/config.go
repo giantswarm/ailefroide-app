@@ -19,10 +19,12 @@ type Github struct {
 }
 
 type TeamSettings struct {
-	SkipRotation          bool     `yaml:"skipRotation" default:"false"`
-	IncludeProductOwner   bool     `yaml:"includePo" default:"true"`
-	IncludeOnCallEngineer bool     `yaml:"includeOCE" default:"true"`
-	ExtraCover            []string `yaml:"extraCover"`
+	SkipRotation             bool     `yaml:"skipRotation" default:"false"`
+	IncludeProductOwner      bool     `yaml:"includePo" default:"true"`
+	IncludeOnCallEngineer    bool     `yaml:"includeOCE" default:"true"`
+	IncludePlatformArchitect bool     `yaml:"includePa" default:"false"`
+	IncludeSRE               bool     `yaml:"includeSRE" default:"false"`
+	ExtraCover               []string `yaml:"extraCover"`
 }
 
 type Config struct {
@@ -31,6 +33,8 @@ type Config struct {
 	AccountEngineers   string                  `yaml:"accountEngineers"`
 	SolutionArchitects string                  `yaml:"solutionArchitects"`
 	ProductOwners      string                  `yaml:"productOwners"`
+	PlatformArchitects string                  `yaml:"platformArchitects"`
+	SREs               string                  `yaml:"siteReliabilityEngineers"`
 	AfkCalendar        string                  `yaml:"calendarId"`
 	PersonioGHFieldId  string                  `yaml:"personioGithubFieldId"`
 	Teams              map[string]TeamSettings `yaml:"teams"`

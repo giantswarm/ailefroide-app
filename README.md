@@ -22,6 +22,8 @@ following teams in Github
 - chapter-sa for Solution Architects
 - chapter-ae for Account Engineers
 - product-owners for Product owners
+- chapter-architecture for Platform architects
+- chapter-sre for site reliability engineers
 
 > Teams eligible for support handle rotation are Github teams that start with
 > the `team-` prefix and contain either Solution Architects or Account
@@ -57,9 +59,13 @@ For each team, there are certain configuration options that can be included
 - `skipRotation bool` - If true, disables your team from
   the support-handle rotation.
 - `includePo bool` - if False, your product owner will not
-  be included in the team support handle
+  be included in the team support handle. Defaults to true
 - `includeOCE bool` - If false, your On Call Engineer will not be included in
-  the support handle
+  the support handle. Defaults to true
+- `includePa bool` - If true, your teams Platform architect will be included in
+  the support handle. Defaults to false
+- `includeSRE bool` - If true, your teams site reliability engineer will be
+  included in the support handle. Defaults to false
 - `extraCover string[]` A list of additional people to include for extra
   coverage of your teams support handle. Both email addresses and Github handles
   are supported here.
@@ -81,7 +87,8 @@ For each team, there are certain configuration options that can be included
       skipRotation: true
   ```
 
-  - Enable your team, include the on call engineer, skip the product owner
+  - Enable your team, include the on call engineer, skip the product owner but
+    include the SRE
 
   ```yaml
   teams:
@@ -89,6 +96,7 @@ For each team, there are certain configuration options that can be included
       skipRotation: false
       includePo: false
       includeOCE: true
+      includeSRE: true
   ```
 
 - Enable your team, accept all defaults, add `fakeuser@giantswarm.io` as

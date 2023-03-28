@@ -15,6 +15,12 @@ config:
   # A github team containing product owners
   productOwners: product-owners
 
+  # A github group for platform architects
+  platformArchitects: chapter-architecture
+
+  # A github group for site reliability engineers
+  siteReliabilityEngineers: chapter-sre
+
   # The google calendar to use for AFK entries
   # This should be the full calendar URL
   calendarId:
@@ -47,6 +53,12 @@ config:
 
       # Include your teams on call engineer. Default true if not specified
       # includeOCE: true
+
+      # Include your teams Platform architect. Default false if not specified
+      # includePa: false
+
+      # Include your teams Site reliability engineer. Default false if not specified
+      # IncludeSRE: false
 
       # A list of Github usernames or email addresses of additional people to include in your team
       # This **should not** include existing team members
