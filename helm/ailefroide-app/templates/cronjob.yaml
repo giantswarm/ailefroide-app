@@ -30,7 +30,7 @@ spec:
               - "/etc/ailefroide/config.yaml"
             {{- if .Values.debug }}
               - "-debug"
-            {{ end -}}
+            {{ end }}
             securityContext:
               {{- toYaml .Values.securityContext | nindent 14 }}
             resources:
