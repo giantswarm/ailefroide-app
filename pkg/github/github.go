@@ -9,6 +9,7 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
+	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	"github.com/google/go-github/v47/github"
 )
 
@@ -26,9 +27,10 @@ type Github struct {
 	platformArchitects       []*aile.Member
 	siteReliabilityEngineers []*aile.Member
 	cfg                      *aile.Config
+	people                   []ap.Employee
 }
 
-func NewGithub(cfg *aile.Config) *Github {
+func NewGithub(cfg *aile.Config, people []ap.Employee) *Github {
 	log.Println("Setting up Github")
 	g := Github{
 		organisation: cfg.Organisation,
@@ -38,6 +40,7 @@ func NewGithub(cfg *aile.Config) *Github {
 		pa:           cfg.PlatformArchitects,
 		sre:          cfg.SREs,
 		cfg:          cfg,
+		people:       people,
 	}
 
 	itr, _ := ghinstallation.NewKeyFromFile(http.DefaultTransport, cfg.Gh.AppId, cfg.Gh.InstallationId, cfg.Gh.PrivateKey)
@@ -143,6 +146,12 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 			var member aile.Member = aile.Member{
 				GithubLogin: login,
 			}
+			for _, p := range g.people {
+				if p.Github == login {
+					member.Email = p.Email
+					break
+				}
+			}
 
 			members = append(members, &member)
 		}
@@ -165,9 +174,23 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 
 	if exists {
 		for _, m := range g.cfg.Teams[team].ExtraCover {
+			var cont = false
+			for i, u := range members {
+				if strings.EqualFold(u.GithubLogin, m) || strings.EqualFold(u.Email, m) {
+					members[i].IncludeWhenNotAFK = true
+					cont = true
+					break
+				}
+			}
+			if cont {
+				continue
+			}
+
 			m = strings.Trim(m, "@")
 			m = strings.ToLower(m)
-			var member aile.Member = aile.Member{}
+			var member aile.Member = aile.Member{
+				IncludeWhenNotAFK: true,
+			}
 
 			member.GithubLogin = m
 			if strings.Contains(m, "@") {
