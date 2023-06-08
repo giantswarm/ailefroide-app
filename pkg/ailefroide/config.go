@@ -93,6 +93,10 @@ func NewConfig(filename string) (*Config, error) {
 		c.PersonioClientSecret = ps
 	}
 
+	if cfg.Config.Teams == nil {
+		cfg.Config.Teams = make(map[string]TeamSettings)
+	}
+
 	err = c.validate()
 	if err == nil {
 		c.CalendarCredentials, err = os.ReadFile(c.CalendarTokenFile)

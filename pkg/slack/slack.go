@@ -150,57 +150,6 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 	*done <- true
 }
 
-// GetUsersPaginated Gets the list of users from Slack
-func (s *Slack) GetUsersPaginated(matchDomain, expression string, userchan *chan []aile.Member) {
-	log.Println("Retrieving users from slack")
-	var (
-		err         error
-		count       int              = 0
-		membersChan chan aile.Member = make(chan aile.Member)
-		members     []aile.Member    = make([]aile.Member, 0)
-		done        chan bool        = make(chan bool)
-	)
-
-	go func(membersChan *chan aile.Member, count *int, expression string) {
-		ctx := context.Background()
-		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
-		for err == nil {
-			p, err = p.Next(ctx)
-			if err == nil {
-				for _, user := range p.Users {
-					if strings.HasSuffix(user.Profile.Email, matchDomain) {
-						*count++
-						go s.userGithubProfileViaChan(membersChan, aile.Member{
-							SlackID: user.ID,
-							Email:   user.Profile.Email,
-						}, expression)
-					}
-				}
-			}
-			if err = s.checkError(err); err != nil {
-				break
-			}
-		}
-		done <- true
-	}(&membersChan, &count, expression)
-
-	var i int = 0
-
-	<-done
-	for i < count {
-		select {
-		case user := <-membersChan:
-			members = append(members, user)
-			i++
-		case <-done:
-			break
-		}
-	}
-
-	log.Println("Done retrieving slack users")
-	*userchan <- members
-}
-
 // GetPersonioUsersPaginated Gets slack users from the given list of personio users
 func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employee, userchan *chan []aile.Member) {
 	log.Println("Retrieving personio users from slack")
@@ -224,7 +173,7 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employ
 			for _, user := range p.Users {
 				go func(user slack.User) {
 					for _, person := range people {
-						if strings.ToLower(user.Profile.Email) == person.Email {
+						if strings.EqualFold(user.Profile.Email, person.Email) {
 							*count++
 							*membersChan <- aile.Member{
 								Email:       person.Email,
@@ -254,54 +203,6 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employ
 	log.Println("Done retrieving slack users")
 	*userchan <- members
 
-}
-
-func (s *Slack) userGithubProfileViaChan(ch *chan aile.Member, member aile.Member, expression string) {
-	member.GithubLogin = s.userGithubProfile(member.SlackID, expression)
-	*ch <- member
-}
-
-// Meh.
-// This method is garbage but needs to exist because things.
-//
-// Basically internal users may not have their GS email as their primary in Github.
-// This makes it hard to match github users to slack users.
-// To get around this, we retrieve the users profile, then try and match their github
-// handle to the github URL field on the users profile.
-// Of course this relies on the user actually having their profile set... which they
-// may well not have.
-//
-// Automation only works when users want to be automated.
-//
-func (s *Slack) userGithubProfile(userID, expression string) (github string) {
-	var (
-		options = slack.GetUserProfileParameters{
-			UserID:        userID,
-			IncludeLabels: false,
-		}
-		u          *slack.UserProfile
-		err        error
-		pattern, _ = regexp.Compile(expression)
-	)
-
-	// Attempts to handle retrieving from the API with rate limiting in place
-	for {
-		u, err = s.client.GetUserProfile(&options)
-		if err == nil || s.checkError(err) != nil {
-			break
-		}
-	}
-
-	if u != nil && u.Fields.Len() > 0 {
-		for _, v := range u.Fields.ToMap() {
-			match := pattern.FindStringSubmatch(v.Value)
-			if len(match) != 0 {
-				github = match[1]
-			}
-		}
-	}
-
-	return
 }
 
 // Topics Get topics from slack channels matching the team prefix.
@@ -415,9 +316,10 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 				primary                 bool = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
 				secondary               bool = (includeOncall || includePlaformArchitect || includeSRE)
 			)
-			if (primary || secondary) && m.SlackID != "" && !m.Afk {
+
+			if (primary || secondary || m.IncludeWhenNotAFK) && m.SlackID != "" && !m.Afk {
 				if debug {
-					members = append(members, m.Email)
+					members = append(members, fmt.Sprintf("%s (%s)", m.Email, m.SlackID))
 				} else {
 					members = append(members, m.SlackID)
 				}

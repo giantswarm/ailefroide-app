@@ -14,6 +14,7 @@ type Member struct {
 	IsSiteReliabilityEngineer bool
 	Afk                       bool
 	Oncall                    bool
+	IncludeWhenNotAFK         bool
 }
 
 // Team Details of a individual team

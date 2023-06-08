@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
@@ -52,25 +53,34 @@ func load() *aile.Config {
 	return cfg
 }
 
-func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string, g *ag.Github) {
-	for k, u := range team.Members {
-		for s, i := range slackUsers {
-			if u.GithubLogin != "" && (i.GithubLogin == u.GithubLogin) {
-				u.SlackID = i.SlackID
-				u.Email = i.Email
-				team.Members[k] = u
-			} else if i.Email != "" && (i.Email == u.Email) {
+func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []string, g *ag.Github, ec []string) {
+	for k, tm := range team.Members {
+		for s, su := range slackUsers {
+			if tm.GithubLogin != "" && strings.EqualFold(su.GithubLogin, tm.GithubLogin) {
+				tm.SlackID = su.SlackID
+				tm.Email = su.Email
+				team.Members[k] = tm
+			} else if su.Email != "" && strings.EqualFold(su.Email, tm.Email) {
 				team.Members[k] = &slackUsers[s]
 			}
-
-			var login string = team.Members[k].GithubLogin
-			team.Members[k].IsAccountEngineer = g.IsAccountEngineer(login)
-			team.Members[k].IsProductOwner = g.IsProductOwner(login)
-			team.Members[k].IsSolutionArchitect = g.IsSolutionArchitect(login)
-			team.Members[k].IsPlatformArchitect = g.IsPlatformArchitect(login)
-			team.Members[k].IsSiteReliabilityEngineer = g.IsSiteReliabilityEngineer(login)
-			team.Members[k].Afk = aile.ContainsString(team.Members[k].Email, afkEvents)
 		}
+
+		var include = false
+		for _, n := range ec {
+			if strings.EqualFold(team.Members[k].Email, n) || strings.EqualFold(team.Members[k].GithubLogin, n) {
+				include = true
+				break
+			}
+		}
+
+		var login string = team.Members[k].GithubLogin
+		team.Members[k].IsAccountEngineer = g.IsAccountEngineer(login)
+		team.Members[k].IsProductOwner = g.IsProductOwner(login)
+		team.Members[k].IsSolutionArchitect = g.IsSolutionArchitect(login)
+		team.Members[k].IsPlatformArchitect = g.IsPlatformArchitect(login)
+		team.Members[k].IsSiteReliabilityEngineer = g.IsSiteReliabilityEngineer(login)
+		team.Members[k].Afk = aile.ContainsString(team.Members[k].Email, afkEvents)
+		team.Members[k].IncludeWhenNotAFK = include
 	}
 }
 
@@ -84,7 +94,7 @@ func main() {
 		people, _ = p.Employees()
 	}
 
-	g := ag.NewGithub(cfg)
+	g := ag.NewGithub(cfg, people)
 	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries, cfg.Teams)
 	c := ac.NewCalendar(cfg)
 	o := ao.NewOpsGenie(cfg.OpsGenieToken, c)
@@ -115,7 +125,7 @@ func main() {
 	afkEvents = <-calchan
 
 	for _, t := range <-teamchan {
-		parseTeamMembers(t, slackUsers, afkEvents, g)
+		parseTeamMembers(t, slackUsers, afkEvents, g, cfg.Teams[t.Name].ExtraCover)
 		if !t.IsEngineeringTeam() && !t.IsAccountEngineering() {
 			continue
 		}

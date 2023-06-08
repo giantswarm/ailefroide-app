@@ -118,6 +118,17 @@ For each team, there are certain configuration options that can be included
         - imafakegithubuser
   ```
 
+### Include When Not AFK
+
+In certain instances, you may wish for additional members of your team to
+appear in the support handles. These will typically be members of your team
+that are not already identified by the roles above for which specific flags
+exist.
+
+To support this, `Ailefroide` allows for your own team members to be added to
+the list identified as `extraCover`. When someone is inside this list, they are
+always added to the support handle except in instances they are AFK.
+
 ## Build
 
 ```bash
