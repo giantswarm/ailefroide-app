@@ -49,36 +49,6 @@ func (g *GoogleCalendar) GetLocation() (t time.Time, y int, m time.Month, d int)
 	return
 }
 
-func (g *GoogleCalendar) AllDayEvents() []string {
-	log.Println("Retrieving all calendar events")
-	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
-		end        = time.Date(y, m, (d + 1), 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
-	)
-	return g.EventEmailsInTimeSpan(start, end)
-}
-
-func (g *GoogleCalendar) MorningEvents() []string {
-	log.Println("Retrieving morning calendar events")
-	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
-		end        = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
-	)
-	return g.EventEmailsInTimeSpan(start, end)
-}
-
-func (g *GoogleCalendar) AfternoonEvents() []string {
-	log.Println("Retrieving afternoon calendar events")
-	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
-		end        = time.Date(y, m, d, 18, 0, 0, 0, t.Location()).Format(time.RFC3339)
-	)
-	return g.EventEmailsInTimeSpan(start, end)
-}
-
 func (g *GoogleCalendar) IsMorning() bool {
 	var (
 		t, y, m, d = g.GetLocation()
@@ -99,29 +69,4 @@ func (g *GoogleCalendar) IsMorning() bool {
 	_end = _end.Add(1 * time.Nanosecond)
 
 	return _check.After(_start) && _check.Before(_end)
-}
-
-func (g *GoogleCalendar) CurrentShiftEvents(events *chan []string) {
-	if g.IsMorning() {
-		*events <- g.MorningEvents()
-		return
-	}
-	*events <- g.AfternoonEvents()
-}
-
-func (g *GoogleCalendar) EventEmailsInTimeSpan(start, end string) (eventEmails []string) {
-	events, err := g.client.Events.List(g.calendar).ShowDeleted(false).
-		SingleEvents(true).TimeMin(start).TimeMax(end).MaxResults(g.maxentries).OrderBy("startTime").Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
-	}
-
-	eventEmails = make([]string, 0)
-	if len(events.Items) != 0 {
-		for _, item := range events.Items {
-			eventEmails = append(eventEmails, item.Creator.Email)
-		}
-	}
-	log.Println("Done retrieving calendar events")
-	return
 }
