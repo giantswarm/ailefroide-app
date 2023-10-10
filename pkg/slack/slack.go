@@ -14,6 +14,10 @@ import (
 	"github.com/slack-go/slack"
 )
 
+const (
+	MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH = 250
+)
+
 // Slack Min client struct for handling the slack api
 type Slack struct {
 	client        *slack.Client
@@ -90,7 +94,9 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 	log.Println("Creating usergroup for", name)
 	for err == nil {
 		u, err = s.client.CreateUserGroup(group)
-		if err == nil || s.checkError(err) != nil {
+		if err.Error() == "handle_already_exists" {
+			u = s.UpdateUserGroup(name, u.ID, description, topics, members)
+		} else if err == nil || s.checkError(err) != nil {
 			break
 		}
 	}
@@ -98,14 +104,17 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 }
 
 // UpdateUserGroup Modify an existing user group
-func (s *Slack) UpdateUserGroup(name, id, description string, topics []string, members []string) {
-	var err error
+func (s *Slack) UpdateUserGroup(name, id, description string, topics []string, members []string) slack.UserGroup {
+	var (
+		u   slack.UserGroup
+		err error
+	)
 
 	// These are deliberately separate loops.
 	// merging them to a single will cause unnecessary nesting and potential hazards
 	log.Println("Updating usergroup for", name)
 	for {
-		_, err = s.client.UpdateUserGroup(id, slack.UpdateUserGroupsOptionDescription(&description))
+		u, err = s.client.UpdateUserGroup(id, slack.UpdateUserGroupsOptionDescription(&description))
 		if err == nil || s.checkError(err) != nil {
 			break
 		}
@@ -119,6 +128,8 @@ func (s *Slack) UpdateUserGroup(name, id, description string, topics []string, m
 			break
 		}
 	}
+
+	return u
 }
 
 // CreateOrUpdateUserGroup Tries to work out of the group exists and updates it if so, else creates it
@@ -129,6 +140,11 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 		existing    bool                 = false
 		id          string               = ""
 	)
+
+	if len(description) > MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH {
+		description = description[:MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH-3] + "..."
+	}
+
 	for _, item := range s.userGroups {
 		if item.Name == name {
 			existing = true
@@ -138,7 +154,7 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 	}
 	if len(members) != 0 { // updating with an empty members list causes an infinite loop.
 		if existing {
-			s.UpdateUserGroup(name, id, description, topics, members)
+			_ = s.UpdateUserGroup(name, id, description, topics, members)
 			*done <- true
 			return
 		}
