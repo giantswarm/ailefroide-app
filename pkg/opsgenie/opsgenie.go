@@ -14,10 +14,10 @@ import (
 type Opsgenie struct {
 	client        *schedule.Client
 	scheduleNames []string
-	calendar      *ac.GoogleCalendar
+	calendar      *ac.Calendar
 }
 
-func NewOpsGenie(token string, calendar *ac.GoogleCalendar) *Opsgenie {
+func NewOpsGenie(token string, calendar *ac.Calendar) *Opsgenie {
 	o := Opsgenie{
 		calendar: calendar,
 	}

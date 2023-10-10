@@ -132,18 +132,9 @@ func main() {
 	slackUsers = <-userchan
 	topics = <-topchan
 	var (
-		start, end time.Time
+		start, end time.Time = c.CurrentShift()
 		absences   []*ap.TimeOff
 	)
-
-	t, y, m, d := c.GetLocation()
-
-	start = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
-	end = time.Date(y, m, d, 13, 30, 0, 0, t.Location())
-	if !c.IsMorning() {
-		start = end
-		end = time.Date(y, m, d, 18, 0, 0, 0, t.Location())
-	}
 
 	absences, _ = p.GetTimeOffs(&start, &end, 0, 1000)
 
