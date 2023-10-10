@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.0] - 2023-10-10
 
+### Changed
+
+- Now create user group function checks errors for existing handles
+- Now user group description is checked before submit the usergroup to not go over the max lenght
 ## [0.2.0] - 2023-06-09
 
 ### Added
