@@ -9,7 +9,9 @@ import (
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
-	ap "github.com/giantswarm/ailefroide/pkg/personio"
+
+	//ap "github.com/giantswarm/ailefroide/pkg/personio"
+	ap "github.com/giantswarm/personio-go/v1"
 	"github.com/google/go-github/v47/github"
 )
 
@@ -27,10 +29,10 @@ type Github struct {
 	platformArchitects       []*aile.Member
 	siteReliabilityEngineers []*aile.Member
 	cfg                      *aile.Config
-	people                   []ap.Employee
+	people                   []*ap.Employee
 }
 
-func NewGithub(cfg *aile.Config, people []ap.Employee) *Github {
+func NewGithub(cfg *aile.Config, people []*ap.Employee) *Github {
 	log.Println("Setting up Github")
 	g := Github{
 		organisation: cfg.Organisation,
@@ -147,8 +149,8 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 				GithubLogin: login,
 			}
 			for _, p := range g.people {
-				if p.Github == login {
-					member.Email = p.Email
+				if *p.GetStringAttribute(g.cfg.PersonioGHFieldId) == login {
+					member.Email = *p.GetStringAttribute("email")
 					break
 				}
 			}

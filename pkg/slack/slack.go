@@ -10,7 +10,8 @@ import (
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
-	ap "github.com/giantswarm/ailefroide/pkg/personio"
+	//ap "github.com/giantswarm/ailefroide/pkg/personio"
+	ap "github.com/giantswarm/personio-go/v1"
 	"github.com/slack-go/slack"
 )
 
@@ -167,7 +168,7 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 }
 
 // GetPersonioUsersPaginated Gets slack users from the given list of personio users
-func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employee, userchan *chan []aile.Member) {
+func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []*ap.Employee, userchan *chan []aile.Member, github string) {
 	log.Println("Retrieving personio users from slack")
 	var (
 		err         error
@@ -177,7 +178,7 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employ
 		done        chan bool        = make(chan bool)
 	)
 
-	go func(membersChan *chan aile.Member, count *int, people []ap.Employee) {
+	go func(membersChan *chan aile.Member, count *int, people []*ap.Employee) {
 		ctx := context.Background()
 		p := s.client.GetUsersPaginated(slack.GetUsersOptionLimit(s.pagingEntries))
 		for err == nil {
@@ -189,12 +190,13 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []ap.Employ
 			for _, user := range p.Users {
 				go func(user slack.User) {
 					for _, person := range people {
-						if strings.EqualFold(user.Profile.Email, person.Email) {
+						var email *string = person.GetStringAttribute("email")
+						if strings.EqualFold(user.Profile.Email, *email) {
 							*count++
 							*membersChan <- aile.Member{
-								Email:       person.Email,
+								Email:       *email,
 								SlackID:     user.ID,
-								GithubLogin: strings.ToLower(person.Github),
+								GithubLogin: strings.ToLower(*person.GetStringAttribute(github)),
 							}
 						}
 					}

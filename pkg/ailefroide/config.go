@@ -2,7 +2,6 @@ package ailefroide
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -40,16 +39,18 @@ type Config struct {
 	Teams              map[string]TeamSettings `yaml:"teams"`
 
 	// Credentials
-	CalendarTokenFile    string `yaml:"calendarCredentialsFile,omitempty"`
 	OpsGenieToken        string `yaml:"opsGenieToken,omitempty"`
 	SlackToken           string `yaml:"slackToken,omitempty"`
 	PersonioClientId     string `yaml:"persionioClientId"`
 	PersonioClientSecret string `yaml:"persionioClientSecret"`
 	Gh                   Github `yaml:"github"`
 
-	Location            string        `yaml:"location" default:"Europe/Berlin"`
-	PagingEntries       int           `yaml:"itemsPerPage" default:"200"`
-	Timeout             time.Duration `yaml:"timeout" default:"100ms"`
+	Location      string        `yaml:"location" default:"Europe/Berlin"`
+	PagingEntries int           `yaml:"itemsPerPage" default:"200"`
+	Timeout       time.Duration `yaml:"timeout" default:"100ms"`
+
+	MiddayShiftChange string `yaml:"midday" default:"13:30"`
+
 	CalendarCredentials []byte
 	Debug               bool
 	DebugTeam           string
@@ -60,14 +61,14 @@ func NewConfig(filename string) (*Config, error) {
 		Config Config `yaml:"config"`
 	}{}
 
-	yamlFile, err := ioutil.ReadFile(filename)
+	yamlFile, err := os.ReadFile(filename)
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 		return nil, err
 	}
 
 	if err = yaml.Unmarshal(yamlFile, &cfg); err != nil {
-		log.Println("Unable to read config file or file is invalid")
+		log.Println("unable to read config file or file is invalid")
 		return nil, err
 	}
 
@@ -98,14 +99,6 @@ func NewConfig(filename string) (*Config, error) {
 	}
 
 	err = c.validate()
-	if err == nil {
-		c.CalendarCredentials, err = os.ReadFile(c.CalendarTokenFile)
-		if err != nil {
-			err = fmt.Errorf("Unable to read client secret file: %v", err)
-		}
-	}
-
-	//os.Setenv("TZ", c.Location)
 	return c, err
 }
 
@@ -123,15 +116,9 @@ func (c *Config) validate() error {
 	if c.PersonioClientSecret == "" {
 		messages = append(messages, "PERSONIO_CLIENT_SECRET is missing")
 	}
-	if c.CalendarTokenFile == "" {
-		messages = append(messages, "Config entry CalendarTokenFile is missing")
-	} else {
-		if _, err := os.Stat(c.CalendarTokenFile); err != nil {
-			messages = append(messages, err.Error())
-		}
-	}
+
 	if len(messages) > 0 {
-		return fmt.Errorf("The following required values are invalid or missing: %s", strings.Join(messages, ", "))
+		return fmt.Errorf("the following required values are invalid or missing: %s", strings.Join(messages, ", "))
 	}
 	return nil
 }

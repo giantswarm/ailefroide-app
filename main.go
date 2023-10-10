@@ -1,18 +1,20 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
 	ag "github.com/giantswarm/ailefroide/pkg/github"
 	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
-	ap "github.com/giantswarm/ailefroide/pkg/personio"
 	as "github.com/giantswarm/ailefroide/pkg/slack"
+	ap "github.com/giantswarm/personio-go/v1"
 )
 
 // Matching patterns for team and support handles
@@ -37,9 +39,9 @@ func load() *aile.Config {
 	flag.Parse()
 
 	if configFile == "" {
-		err = fmt.Errorf("Missing configfile - please specify either AILE_CONFIG_FILE env var or -config")
+		err = fmt.Errorf("missing configfile - please specify either AILE_CONFIG_FILE env var or -config")
 	} else if _, err = os.Stat(configFile); err != nil {
-		err = fmt.Errorf("Config file does not exist or is unreadable")
+		err = fmt.Errorf("config file does not exist or is unreadable")
 	} else if cfg, err = aile.NewConfig(configFile); err != nil {
 		log.Println("Config loaded")
 	}
@@ -84,14 +86,23 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 	}
 }
 
+const PERSONIO_API = "https://api.personio.de/v1"
+
 func main() {
 	var (
 		cfg    *aile.Config = load()
-		people []ap.Employee
+		people []*ap.Employee
+		e      error
+		creds  ap.Credentials = ap.Credentials{
+			ClientId:     cfg.PersonioClientId,
+			ClientSecret: cfg.PersonioClientSecret,
+		}
+		p *ap.Client
 	)
 
-	if p, e := ap.New(cfg.PersonioClientId, cfg.PersonioClientSecret, cfg.PersonioGHFieldId); e == nil {
-		people, _ = p.Employees()
+	//cfg.PersonioGHFieldId
+	if p, e = ap.NewClient(context.TODO(), PERSONIO_API, creds); e == nil {
+		people, _ = p.GetEmployees()
 	}
 
 	g := ag.NewGithub(cfg, people)
@@ -114,15 +125,22 @@ func main() {
 	defer close(calchan)
 	defer close(userchan)
 
-	go c.CurrentShiftEvents(&calchan)
 	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
-
 	go s.Topics(TEAM_PATTERN, &topchan)
-	go s.GetPersonioUsersPaginated(cfg.Domain, people, &userchan)
+	go s.GetPersonioUsersPaginated(cfg.Domain, people, &userchan, cfg.PersonioGHFieldId)
 
 	slackUsers = <-userchan
 	topics = <-topchan
-	afkEvents = <-calchan
+	var (
+		start, end time.Time = c.CurrentShift()
+		absences   []*ap.TimeOff
+	)
+
+	absences, _ = p.GetTimeOffs(&start, &end, 0, 1000)
+
+	for _, t := range absences {
+		afkEvents = append(afkEvents, *t.Employee.GetStringAttribute("email"))
+	}
 
 	for _, t := range <-teamchan {
 		parseTeamMembers(t, slackUsers, afkEvents, g, cfg.Teams[t.Name].ExtraCover)

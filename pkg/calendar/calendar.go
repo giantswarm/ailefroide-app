@@ -1,47 +1,34 @@
 package calendar
 
 import (
-	"context"
 	"log"
+	"strconv"
+	"strings"
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
-	"golang.org/x/oauth2/google"
-	"google.golang.org/api/calendar/v3"
-	"google.golang.org/api/option"
 )
 
-type GoogleCalendar struct {
-	client     *calendar.Service
+type Calendar struct {
 	calendar   string
 	location   string
 	maxentries int64
+	cfg        *aile.Config
 }
 
-func NewCalendar(cfg *aile.Config) *GoogleCalendar {
-	g := GoogleCalendar{
+func NewCalendar(cfg *aile.Config) *Calendar {
+	g := Calendar{
 		calendar:   cfg.AfkCalendar,
 		location:   cfg.Location,
 		maxentries: int64(cfg.PagingEntries),
-	}
-	ctx := context.Background()
-	conf, err := google.JWTConfigFromJSON(cfg.CalendarCredentials, calendar.CalendarReadonlyScope)
-	if err != nil {
-		log.Fatalf("Unable to parse client secret file to config: %v", err)
-	}
-
-	client := conf.Client(context.Background())
-
-	g.client, err = calendar.NewService(ctx, option.WithHTTPClient(client))
-	if err != nil {
-		log.Fatalf("Unable to retrieve Calendar client: %v\n", err)
+		cfg:        cfg,
 	}
 
 	log.Printf("Using location '%s' for calendar entries", g.location)
 	return &g
 }
 
-func (g *GoogleCalendar) GetLocation() (t time.Time, y int, m time.Month, d int) {
+func (g *Calendar) GetLocation() (t time.Time, y int, m time.Month, d int) {
 	var loc, _ = time.LoadLocation(g.location)
 
 	t = time.Now().In(loc)
@@ -49,45 +36,23 @@ func (g *GoogleCalendar) GetLocation() (t time.Time, y int, m time.Month, d int)
 	return
 }
 
-func (g *GoogleCalendar) AllDayEvents() []string {
-	log.Println("Retrieving all calendar events")
-	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
-		end        = time.Date(y, m, (d + 1), 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
-	)
-	return g.EventEmailsInTimeSpan(start, end)
-}
+func (g *Calendar) IsMorning() bool {
 
-func (g *GoogleCalendar) MorningEvents() []string {
-	log.Println("Retrieving morning calendar events")
-	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location()).Format(time.RFC3339)
-		end        = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
-	)
-	return g.EventEmailsInTimeSpan(start, end)
-}
-
-func (g *GoogleCalendar) AfternoonEvents() []string {
-	log.Println("Retrieving afternoon calendar events")
-	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 13, 0, 0, 0, t.Location()).Format(time.RFC3339)
-		end        = time.Date(y, m, d, 18, 0, 0, 0, t.Location()).Format(time.RFC3339)
-	)
-	return g.EventEmailsInTimeSpan(start, end)
-}
-
-func (g *GoogleCalendar) IsMorning() bool {
 	var (
 		t, y, m, d = g.GetLocation()
 		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
-		end        = time.Date(y, m, d, 13, 0, 0, 0, t.Location())
-		_start     = start
-		_end       = end
-		_check     = t
+		end        time.Time
+		_start         = start
+		_end           = end
+		_check         = t
+		ah, am     int = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
 	)
+
+	if ah == -1 {
+		ah = 13
+	}
+	end = time.Date(y, m, d, ah, am, 0, 0, t.Location())
+
 	if end.Before(start) {
 		_end = end.Add(24 * time.Hour)
 		if t.Before(start) {
@@ -101,27 +66,50 @@ func (g *GoogleCalendar) IsMorning() bool {
 	return _check.After(_start) && _check.Before(_end)
 }
 
-func (g *GoogleCalendar) CurrentShiftEvents(events *chan []string) {
-	if g.IsMorning() {
-		*events <- g.MorningEvents()
-		return
+func (g *Calendar) Morning() (start, end time.Time) {
+	var (
+		t, y, m, d = g.GetLocation()
+		h, mi      = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
+	)
+	if h == -1 {
+		h = 0
 	}
-	*events <- g.AfternoonEvents()
+	start = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
+	end = time.Date(y, m, d, h, mi, 0, 0, t.Location())
+	return
 }
 
-func (g *GoogleCalendar) EventEmailsInTimeSpan(start, end string) (eventEmails []string) {
-	events, err := g.client.Events.List(g.calendar).ShowDeleted(false).
-		SingleEvents(true).TimeMin(start).TimeMax(end).MaxResults(g.maxentries).OrderBy("startTime").Do()
-	if err != nil {
-		log.Fatalf("Unable to retrieve next ten of the user's events: %v", err)
+func (g *Calendar) Afternoon() (start, end time.Time) {
+	var (
+		t, y, m, d = g.GetLocation()
+		h, mi      = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
+	)
+	if h == -1 {
+		h = 13
 	}
-
-	eventEmails = make([]string, 0)
-	if len(events.Items) != 0 {
-		for _, item := range events.Items {
-			eventEmails = append(eventEmails, item.Creator.Email)
-		}
-	}
-	log.Println("Done retrieving calendar events")
+	start = time.Date(y, m, d, h, mi, 0, 0, t.Location())
+	end = time.Date(y, m, d, 23, 59, 0, 0, t.Location())
 	return
+}
+
+func (g *Calendar) CurrentShift() (start, end time.Time) {
+	if g.IsMorning() {
+		return g.Morning()
+	}
+	return g.Afternoon()
+}
+
+func (g *Calendar) getTimeAsHoursMinutes(t string) (int, int) {
+	var (
+		h, m int
+		x    []string = strings.Split(t, ":")
+		e    error
+	)
+	if h, e = strconv.Atoi(x[0]); e != nil {
+		h = -1
+	}
+	if m, e = strconv.Atoi(x[1]); e != nil {
+		m = 0
+	}
+	return h, m
 }

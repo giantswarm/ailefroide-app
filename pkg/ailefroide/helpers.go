@@ -7,7 +7,7 @@ import (
 
 func ContainsString(what string, where []string) bool {
 	for _, i := range where {
-		if i == what {
+		if strings.EqualFold(i, what) {
 			return true
 		}
 	}
