@@ -34,7 +34,7 @@ func NewSlack(token, expression string, pagingEntries int, teamSettings map[stri
 		pagingEntries: pagingEntries,
 		teamSettings:  teamSettings,
 	}
-	go s.getUserGroups(expression)
+	s.getUserGroups(expression)
 	return &s
 }
 
@@ -65,7 +65,7 @@ func (s *Slack) getUserGroups(expression string) {
 			if err == nil {
 				var usergroups []slack.UserGroup = make([]slack.UserGroup, 0)
 				for _, item := range ug {
-					if pattern.Match([]byte(item.Name)) {
+					if pattern.Match([]byte(item.Handle)) {
 						usergroups = append(usergroups, item)
 					}
 				}
@@ -147,7 +147,7 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 	}
 
 	for _, item := range s.userGroups {
-		if item.Name == name {
+		if item.Handle == name {
 			existing = true
 			id = item.ID
 			break
