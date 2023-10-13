@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH = 250
+	MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH = 140
 )
 
 // Slack Min client struct for handling the slack api
@@ -95,8 +95,13 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 	log.Println("Creating usergroup for", name)
 	for err == nil {
 		u, err = s.client.CreateUserGroup(group)
-		if err.Error() == "handle_already_exists" {
-			u = s.UpdateUserGroup(name, u.ID, description, topics, members)
+		if err != nil {
+			if err.Error() == "description_too_long" {
+				log.Println("description_too_long for ", name, description, len(description))
+				break
+			} else if err.Error() == "handle_already_exists" {
+				u = s.UpdateUserGroup(name, u.ID, description, topics, members)
+			}
 		} else if err == nil || s.checkError(err) != nil {
 			break
 		}
@@ -116,7 +121,9 @@ func (s *Slack) UpdateUserGroup(name, id, description string, topics []string, m
 	log.Println("Updating usergroup for", name)
 	for {
 		u, err = s.client.UpdateUserGroup(id, slack.UpdateUserGroupsOptionDescription(&description))
-		if err == nil || s.checkError(err) != nil {
+		if err != nil && err.Error() == "description_too_long" {
+			log.Println("description_too_long for ", name, description, len(description))
+		} else if err == nil || s.checkError(err) != nil {
 			break
 		}
 	}
@@ -142,6 +149,9 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 		id          string               = ""
 	)
 
+	pattern := regexp.MustCompile(`[^a-zA-Z0-9,-. ]+`)
+	description = pattern.ReplaceAllString(description, "")
+
 	if len(description) > MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH {
 		description = description[:MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH-3] + "..."
 	}
@@ -152,6 +162,10 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 			id = item.ID
 			break
 		}
+	}
+
+	if id == "" {
+		log.Println("unable to discover ID for usergroup", name)
 	}
 	if len(members) != 0 { // updating with an empty members list causes an infinite loop.
 		if existing {
