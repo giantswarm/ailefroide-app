@@ -139,7 +139,9 @@ func main() {
 	absences, _ = p.GetTimeOffs(&start, &end, 0, 1000)
 
 	for _, t := range absences {
-		afkEvents = append(afkEvents, *t.Employee.GetStringAttribute("email"))
+		if (!bool(t.HalfDayStart) && !bool(t.HalfDayEnd)) || (bool(t.HalfDayStart) && c.IsMorning()) || (bool(t.HalfDayEnd) && !c.IsMorning()) {
+			afkEvents = append(afkEvents, *t.Employee.GetStringAttribute("email"))
+		}
 	}
 
 	for _, t := range <-teamchan {
