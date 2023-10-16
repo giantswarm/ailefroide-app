@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Fix calendar and half day logic
+
 ## [0.3.2] - 2023-10-13
 
 ### Changed
