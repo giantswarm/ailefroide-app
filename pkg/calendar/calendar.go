@@ -41,9 +41,8 @@ func (g *Calendar) IsMorning() bool {
 	var (
 		t, y, m, d = g.GetLocation()
 		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
-		end        time.Time
+		end, _end  time.Time
 		_start         = start
-		_end           = end
 		_check         = t
 		ah, am     int = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
 	)
@@ -52,6 +51,7 @@ func (g *Calendar) IsMorning() bool {
 		ah = 13
 	}
 	end = time.Date(y, m, d, ah, am, 0, 0, t.Location())
+	_end = end
 
 	if end.Before(start) {
 		_end = end.Add(24 * time.Hour)
