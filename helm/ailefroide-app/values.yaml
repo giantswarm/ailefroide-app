@@ -20,7 +20,7 @@ configMap:
     github.pem: ""
 
 image:
-  repository: docker.io/giantswarm/ailefroide
+  repository: quay.io/giantswarm/ailefroide
   pullPolicy: Always
   tag: ""
 
@@ -44,6 +44,9 @@ podSecurityContext:
 
 
 securityContext:
+  capabilities:
+    drop:
+      - ALL
   runAsUser: 1000
   runAsGroup: 3000
   allowPrivilegeEscalation: false
