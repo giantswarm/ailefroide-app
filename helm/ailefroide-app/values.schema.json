@@ -17,10 +17,10 @@
                         "config.yaml": {
                             "type": "string"
                         },
-                        "token.json": {
+                        "github.pem": {
                             "type": "string"
                         },
-                        "github.pem": {
+                        "token.json": {
                             "type": "string"
                         }
                     }
@@ -92,6 +92,14 @@
                 },
                 "runAsUser": {
                     "type": "integer"
+                },
+                "seccompProfile": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
@@ -133,6 +141,9 @@
         "securityContext": {
             "type": "object",
             "properties": {
+                "allowPrivilegeEscalation": {
+                    "type": "boolean"
+                },
                 "readOnlyRootFilesystem": {
                     "type": "boolean"
                 },
@@ -141,6 +152,14 @@
                 },
                 "runAsUser": {
                     "type": "integer"
+                },
+                "seccompProfile": {
+                    "type": "object",
+                    "properties": {
+                        "type": {
+                            "type": "string"
+                        }
+                    }
                 }
             }
         },
