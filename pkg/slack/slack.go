@@ -100,7 +100,7 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 				log.Println("description_too_long for ", name, description, len(description))
 				break
 			} else if err.Error() == "handle_already_exists" {
-				u = s.UpdateUserGroup(name, u.ID, description, topics, members)
+				u = s.updateUserGroup(name, u.ID, description, topics, members)
 			}
 		} else if err == nil || s.checkError(err) != nil {
 			break
@@ -110,7 +110,18 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 }
 
 // UpdateUserGroup Modify an existing user group
-func (s *Slack) UpdateUserGroup(name, id, description string, topics []string, members []string) slack.UserGroup {
+func (s *Slack) updateUserGroup(name, id, description string, topics []string, members []string) slack.UserGroup {
+	// Don't execute the function if the members list is empty.
+	//
+	// This is a workaround for a bug in the slack API where the members list
+	// is not updated if the list is empty.
+	//
+	// Secondly, we do not want or desire to update the usergroup if there are
+	// no members in it.
+	if len(members) == 0 {
+		return slack.UserGroup{}
+	}
+
 	var (
 		u   slack.UserGroup
 		err error
@@ -167,16 +178,14 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 	if id == "" {
 		log.Println("unable to discover ID for usergroup", name)
 	}
-	if len(members) != 0 { // updating with an empty members list causes an infinite loop.
-		if existing {
-			_ = s.UpdateUserGroup(name, id, description, topics, members)
-			*done <- true
-			return
-		}
-		go s.CreateUserGroup(name, description, topics, members, usergroup)
-		if u, ok := <-usergroup; ok {
-			s.userGroups = append(s.userGroups, u)
-		}
+	if existing {
+		_ = s.updateUserGroup(name, id, description, topics, members)
+		*done <- true
+		return
+	}
+	go s.CreateUserGroup(name, description, topics, members, usergroup)
+	if u, ok := <-usergroup; ok {
+		s.userGroups = append(s.userGroups, u)
 	}
 	*done <- true
 }
