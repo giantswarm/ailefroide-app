@@ -49,7 +49,7 @@ type Config struct {
 	PagingEntries int           `yaml:"itemsPerPage" default:"200"`
 	Timeout       time.Duration `yaml:"timeout" default:"100ms"`
 
-	MiddayShiftChange string `yaml:"midday" default:"13:30"`
+	MiddayShiftChange string `yaml:"midday" default:"13:00"`
 
 	CalendarCredentials []byte
 	Debug               bool
