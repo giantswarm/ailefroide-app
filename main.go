@@ -139,7 +139,13 @@ func main() {
 	absences, _ = p.GetTimeOffs(&start, &end, 0, 1000)
 
 	for _, t := range absences {
-		if (!bool(t.HalfDayStart) && !bool(t.HalfDayEnd)) || (bool(t.HalfDayStart) && c.IsMorning()) || (bool(t.HalfDayEnd) && !c.IsMorning()) {
+		var (
+			isFullDay   bool = !bool(t.HalfDayStart) && !bool(t.HalfDayEnd)
+			isMorning   bool = bool(t.HalfDayStart) && c.IsMorning()
+			isAfternoon bool = bool(t.HalfDayEnd) && !c.IsMorning()
+		)
+
+		if isFullDay || isMorning || isAfternoon {
 			afkEvents = append(afkEvents, *t.Employee.GetStringAttribute("email"))
 		}
 	}

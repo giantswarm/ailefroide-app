@@ -2,8 +2,6 @@ package calendar
 
 import (
 	"log"
-	"strconv"
-	"strings"
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
@@ -28,6 +26,7 @@ func NewCalendar(cfg *aile.Config) *Calendar {
 	return &g
 }
 
+// GetLocation returns the current time in the configured location (default: Europe/Berlin)
 func (g *Calendar) GetLocation() (t time.Time, y int, m time.Month, d int) {
 	var loc, _ = time.LoadLocation(g.location)
 
@@ -36,62 +35,57 @@ func (g *Calendar) GetLocation() (t time.Time, y int, m time.Month, d int) {
 	return
 }
 
+// IsMorning returns true if the current time is between 0am and the configured
+// midday shift change time (default: 1pm)
 func (g *Calendar) IsMorning() bool {
 
 	var (
-		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
-		end, _end  time.Time
-		_start         = start
-		_check         = t
-		ah, am     int = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
+		current, _, _, _ = g.GetLocation()
+		start, end       = g.Morning()
 	)
 
-	if ah == -1 {
-		ah = 13
-	}
-	end = time.Date(y, m, d, ah, am, 0, 0, t.Location())
-	_end = end
-
-	if end.Before(start) {
-		_end = end.Add(24 * time.Hour)
-		if t.Before(start) {
-			_check = t.Add(24 * time.Hour)
-		}
-	}
-
-	_start = _start.Add(-1 * time.Nanosecond)
-	_end = _end.Add(1 * time.Nanosecond)
-
-	return _check.After(_start) && _check.Before(_end)
+	return current.Equal(start) || (current.After(start) && current.Before(end))
 }
 
+// Morning returns the start and end time of the morning shift
+//
+// To prevent Ailefroide from failing to find the correct calendar entries
+// the morning shift is configured to start from midnight to the configured
+// midday shift change time (default: 1pm)
 func (g *Calendar) Morning() (start, end time.Time) {
 	var (
 		t, y, m, d = g.GetLocation()
-		h, mi      = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
+		h, mi      = g.getMiddayShiftChange()
 	)
-	if h == -1 {
-		h = 0
-	}
+
 	start = time.Date(y, m, d, 0, 0, 0, 0, t.Location())
 	end = time.Date(y, m, d, h, mi, 0, 0, t.Location())
 	return
 }
 
+// Afternoon returns the start and end time of the afternoon shift running from
+// the configured midday shift change time (default: 1pm) to midnight (0am)
 func (g *Calendar) Afternoon() (start, end time.Time) {
 	var (
 		t, y, m, d = g.GetLocation()
-		h, mi      = g.getTimeAsHoursMinutes(g.cfg.MiddayShiftChange)
+		h, mi      = g.getMiddayShiftChange()
 	)
-	if h == -1 {
-		h = 13
-	}
 	start = time.Date(y, m, d, h, mi, 0, 0, t.Location())
 	end = time.Date(y, m, d, 23, 59, 0, 0, t.Location())
 	return
 }
 
+// IsBusinessHours returns true if the current time is between 9am and 6pm
+func (g *Calendar) IsBusinessHours() bool {
+	var (
+		t, y, m, d = g.GetLocation()
+		start      = time.Date(y, m, d, 9, 0, 0, 0, t.Location())
+		end        = time.Date(y, m, d, 18, 0, 0, 0, t.Location())
+	)
+	return t.After(start) && t.Before(end)
+}
+
+// CurrentShift returns the start and end time of the current shift
 func (g *Calendar) CurrentShift() (start, end time.Time) {
 	if g.IsMorning() {
 		return g.Morning()
@@ -99,17 +93,14 @@ func (g *Calendar) CurrentShift() (start, end time.Time) {
 	return g.Afternoon()
 }
 
-func (g *Calendar) getTimeAsHoursMinutes(t string) (int, int) {
+func (g *Calendar) getMiddayShiftChange() (int, int) {
 	var (
-		h, m int
-		x    []string = strings.Split(t, ":")
-		e    error
+		h, m int = 13, 0 // default to 13:00
 	)
-	if h, e = strconv.Atoi(x[0]); e != nil {
-		h = -1
+
+	if current, err := time.Parse("15:04", g.cfg.MiddayShiftChange); err == nil {
+		h, m = current.Hour(), current.Minute()
 	}
-	if m, e = strconv.Atoi(x[1]); e != nil {
-		m = 0
-	}
+
 	return h, m
 }
