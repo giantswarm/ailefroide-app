@@ -79,10 +79,12 @@ func (g *Calendar) Afternoon() (start, end time.Time) {
 func (g *Calendar) IsBusinessHours() bool {
 	var (
 		t, y, m, d = g.GetLocation()
-		start      = time.Date(y, m, d, 9, 0, 0, 0, t.Location())
-		end        = time.Date(y, m, d, 18, 0, 0, 0, t.Location())
+		dsh, dsm   = g.getStartOfDay()
+		esh, esm   = g.getEndOfDay()
+		start      = time.Date(y, m, d, dsh, dsm, 0, 0, t.Location())
+		end        = time.Date(y, m, d, esh, esm, 0, 0, t.Location())
 	)
-	return t.After(start) && t.Before(end)
+	return t.Equal(start) || (t.After(start) && t.Before(end))
 }
 
 // CurrentShift returns the start and end time of the current shift
@@ -93,14 +95,26 @@ func (g *Calendar) CurrentShift() (start, end time.Time) {
 	return g.Afternoon()
 }
 
-func (g *Calendar) getMiddayShiftChange() (int, int) {
+func (g *Calendar) GetConfigTime(cfg string, defaultH, defaultM int) (int, int) {
 	var (
-		h, m int = 13, 0 // default to 13:00
+		h, m int = defaultH, defaultM
 	)
 
-	if current, err := time.Parse("15:04", g.cfg.MiddayShiftChange); err == nil {
+	if current, err := time.Parse("15:04", cfg); err == nil {
 		h, m = current.Hour(), current.Minute()
 	}
 
 	return h, m
+}
+
+func (g *Calendar) getMiddayShiftChange() (int, int) {
+	return g.GetConfigTime(g.cfg.MiddayShiftChange, 13, 0)
+}
+
+func (g *Calendar) getStartOfDay() (int, int) {
+	return g.GetConfigTime(g.cfg.StartOfDay, 9, 0)
+}
+
+func (g *Calendar) getEndOfDay() (int, int) {
+	return g.GetConfigTime(g.cfg.EndOfDay, 18, 0)
 }
