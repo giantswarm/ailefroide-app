@@ -49,7 +49,7 @@ type Config struct {
 	PagingEntries int           `yaml:"itemsPerPage" default:"200"`
 	Timeout       time.Duration `yaml:"timeout" default:"100ms"`
 
-	StartOfDay 	   string `yaml:"startOfDay" default:"09:00"`
+	StartOfDay        string `yaml:"startOfDay" default:"09:00"`
 	MiddayShiftChange string `yaml:"midday" default:"13:00"`
 	EndOfDay          string `yaml:"endOfDay" default:"18:00"`
 
