@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Simplify calendar functions
+- kill On call engineer at end of day
+
 ## [0.3.5] - 2023-11-30
 
 ## [0.3.4] - 2023-11-29
