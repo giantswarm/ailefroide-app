@@ -100,7 +100,6 @@ func main() {
 		p *ap.Client
 	)
 
-	//cfg.PersonioGHFieldId
 	if p, e = ap.NewClient(context.TODO(), PERSONIO_API, creds); e == nil {
 		people, _ = p.GetEmployees()
 	}
@@ -117,12 +116,10 @@ func main() {
 		topics     map[string][]string
 		teams      []*aile.Team       = make([]*aile.Team, 0)
 		teamchan   chan []*aile.Team  = make(chan []*aile.Team)
-		calchan    chan []string      = make(chan []string)
 		userchan   chan []aile.Member = make(chan []aile.Member)
 	)
 	defer close(topchan)
 	defer close(teamchan)
-	defer close(calchan)
 	defer close(userchan)
 
 	go g.Teams(cfg.Organisation, TEAM_PATTERN, &teamchan)
@@ -139,7 +136,13 @@ func main() {
 	absences, _ = p.GetTimeOffs(&start, &end, 0, 1000)
 
 	for _, t := range absences {
-		if (!bool(t.HalfDayStart) && !bool(t.HalfDayEnd)) || (bool(t.HalfDayStart) && c.IsMorning()) || (bool(t.HalfDayEnd) && !c.IsMorning()) {
+		var (
+			isFullDay   bool = !bool(t.HalfDayStart) && !bool(t.HalfDayEnd)
+			isMorning   bool = bool(t.HalfDayStart) && c.IsMorning()
+			isAfternoon bool = bool(t.HalfDayEnd) && !c.IsMorning()
+		)
+
+		if isFullDay || isMorning || isAfternoon {
 			afkEvents = append(afkEvents, *t.Employee.GetStringAttribute("email"))
 		}
 	}

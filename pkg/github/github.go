@@ -10,7 +10,6 @@ import (
 	"github.com/bradleyfalzon/ghinstallation/v2"
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 
-	//ap "github.com/giantswarm/ailefroide/pkg/personio"
 	ap "github.com/giantswarm/personio-go/v1"
 	"github.com/google/go-github/v47/github"
 )

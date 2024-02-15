@@ -10,7 +10,6 @@ import (
 	"time"
 
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
-	//ap "github.com/giantswarm/ailefroide/pkg/personio"
 	ap "github.com/giantswarm/personio-go/v1"
 	"github.com/slack-go/slack"
 )

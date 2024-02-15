@@ -83,7 +83,8 @@ func (o *Opsgenie) WhoIsOnCall(team *aile.Team) {
 		if len(p) > 0 {
 			for _, m := range team.Members {
 				if m.Email == p[0].Name {
-					m.Oncall = true
+					// Only set the oncall engineer for during business hours
+					m.Oncall = o.calendar.IsBusinessHours()
 				}
 			}
 		}
