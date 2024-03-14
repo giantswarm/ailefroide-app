@@ -131,7 +131,7 @@ func main() {
 	var (
 		start, end time.Time = c.CurrentShift()
 		absences   []*ap.TimeOff
-		err error
+		err        error
 	)
 
 	absences, err = p.GetTimeOffs(&start, &end, 0, 1000)
