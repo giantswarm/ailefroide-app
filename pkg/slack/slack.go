@@ -58,8 +58,7 @@ func (s *Slack) getUserGroups(expression string) {
 	)
 	defer close(users)
 	go func() {
-		var err error
-		for err == nil {
+		for {
 			ug, err := s.client.GetUserGroups()
 			if err == nil {
 				var usergroups []slack.UserGroup = make([]slack.UserGroup, 0)
@@ -99,9 +98,9 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 				log.Println("description_too_long for ", name, description, len(description))
 				break
 			} else if err.Error() == "handle_already_exists" {
-				u = s.updateUserGroup(name, u.ID, description, topics, members)
+				u = s.updateUserGroup(name, u.ID, description, members)
 			}
-		} else if err == nil || s.checkError(err) != nil {
+		} else if s.checkError(err) != nil {
 			break
 		}
 	}
@@ -109,7 +108,7 @@ func (s *Slack) CreateUserGroup(name, description string, topics []string, membe
 }
 
 // UpdateUserGroup Modify an existing user group
-func (s *Slack) updateUserGroup(name, id, description string, topics []string, members []string) slack.UserGroup {
+func (s *Slack) updateUserGroup(name, id, description string, members []string) slack.UserGroup {
 	// Don't execute the function if the members list is empty.
 	//
 	// This is a workaround for a bug in the slack API where the members list
@@ -178,7 +177,7 @@ func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []
 		log.Println("unable to discover ID for usergroup", name)
 	}
 	if existing {
-		_ = s.updateUserGroup(name, id, description, topics, members)
+		_ = s.updateUserGroup(name, id, description, members)
 		*done <- true
 		return
 	}
@@ -357,13 +356,21 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 				secondary               bool = (includeOncall || includePlaformArchitect || includeSRE)
 			)
 
+			if m.Email == "" {
+				log.Printf("Skipping user with no email address %+v", m)
+			}
+
+			var message string = fmt.Sprintf("%s is NOT", m.Email)
 			if (primary || secondary || m.IncludeWhenNotAFK) && m.SlackID != "" && !m.Afk {
+				message = fmt.Sprintf("%s is", m.Email)
 				if debug {
 					members = append(members, fmt.Sprintf("%s (%s)", m.Email, m.SlackID))
 				} else {
 					members = append(members, m.SlackID)
 				}
 			}
+			message += fmt.Sprintf(" because primary=%t secondary=%t afk=%t slackid=%s", primary, secondary, m.Afk, m.SlackID)
+			log.Println(message)
 		}
 
 		supportTeams[supportName] = members

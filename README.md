@@ -4,6 +4,12 @@
 
 ## What is this?
 
+> *Note* For debugging purposes, the controlling cronjob now keeps the last
+> 10 SUCCESSFUL jobs and the last 3 FAILED jobs
+>
+> The reason for 10 successful is it might take a while before an issue is
+> reported meaning other runs may have taken place in the meantime.
+
 The purpose of this application is to automatically create and manage support
 handles for teams in Slack.
 
