@@ -12,6 +12,8 @@ spec:
     spec:
       backoffLimit: 1
       parallelism: 1
+      successfulJobsHistoryLimit: 10
+      failedJobsHistoryLimit: 3
       ttlSecondsAfterFinished: 600
       template:
         spec:

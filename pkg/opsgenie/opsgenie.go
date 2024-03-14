@@ -76,6 +76,7 @@ func (o *Opsgenie) WhoIsOnCall(team *aile.Team) {
 			ScheduleIdentifierType: schedule.Name,
 			ScheduleIdentifier:     scheduleName,
 		}); err != nil {
+			log.Printf("Unexpected error getting on call participants for schedule %s: %s", scheduleName, err)
 			continue
 		}
 
