@@ -5,8 +5,8 @@ github.com/creasty/defaults v1.7.0/go.mod h1:iGzKe6pbEHnpMPtfDXZEr0NVxWnPTjb1bbD
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/giantswarm/personio-go v0.3.0 h1:hYtsIb4UhmVcCh4sS1rL2f+A3y/vZiHfIEewZfSlPr4=
-github.com/giantswarm/personio-go v0.3.0/go.mod h1:4R6PohJg6uCIm0nErfI4OzdyXt+iJc0Q1iGB6/jFOUw=
+github.com/giantswarm/personio-go v0.4.0 h1:qCZubs0FHQQM0crJYTh+tOlTR2L5udJUP4/NOVWKnJo=
+github.com/giantswarm/personio-go v0.4.0/go.mod h1:4R6PohJg6uCIm0nErfI4OzdyXt+iJc0Q1iGB6/jFOUw=
 github.com/go-test/deep v1.0.4 h1:u2CU3YKy9I2pmu9pX0eq50wCgjfGIt539SqR7FbHiho=
 github.com/go-test/deep v1.0.4/go.mod h1:wGDj63lr65AM2AQyKZd/NYHGb0R+1RLqB8NKt3aSFNA=
 github.com/golang-jwt/jwt/v4 v4.4.1 h1:pC5DB52sCeK48Wlb9oPcdhnjkz1TKt1D/P7WKJ0kUcQ=
