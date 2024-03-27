@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/bradleyfalzon/ghinstallation/v2 v2.1.0
 	github.com/creasty/defaults v1.7.0
-	github.com/giantswarm/personio-go v0.3.0
+	github.com/giantswarm/personio-go v0.4.0
 	github.com/google/go-github/v47 v47.0.0
 	github.com/opsgenie/opsgenie-go-sdk-v2 v1.2.13
 	github.com/slack-go/slack v0.11.2

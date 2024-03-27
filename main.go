@@ -9,12 +9,13 @@ import (
 	"strings"
 	"time"
 
+	ap "github.com/giantswarm/personio-go/v1"
+
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
 	ag "github.com/giantswarm/ailefroide/pkg/github"
 	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
 	as "github.com/giantswarm/ailefroide/pkg/slack"
-	ap "github.com/giantswarm/personio-go/v1"
 )
 
 // Matching patterns for team and support handles
@@ -134,21 +135,18 @@ func main() {
 		err        error
 	)
 
-	absences, err = p.GetTimeOffs(&start, &end, 0, 1000)
+	absences, err = p.GetTimeOffsMapped(start, end)
 	if err != nil {
 		log.Println("Error getting absences", err)
+		os.Exit(1)
 	}
 
-	for _, t := range absences {
-		var (
-			isFullDay   bool = !bool(t.HalfDayStart) && !bool(t.HalfDayEnd)
-			isMorning   bool = bool(t.HalfDayStart) && c.IsMorning()
-			isAfternoon bool = bool(t.HalfDayEnd) && !c.IsMorning()
-		)
-
-		if isFullDay || isMorning || isAfternoon {
-			afkEvents = append(afkEvents, *t.Employee.GetStringAttribute("email"))
+	for _, absence := range absences {
+		email := absence.Employee.GetStringAttribute("email")
+		if email == nil || aile.ContainsString(*email, afkEvents) {
+			continue
 		}
+		afkEvents = append(afkEvents, *email)
 	}
 
 	for _, t := range <-teamchan {
