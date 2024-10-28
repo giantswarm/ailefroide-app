@@ -24,4 +24,4 @@ name: ailefroide-app
 sources:
   - https://github.com/giantswarm/ailefroide-app
   - https://raw.githubusercontent.com/giantswarm/ailefroide-app/v[[ .Version ]]/README.md
-version: 0.3.8
+version: 0.4.0
