@@ -5,33 +5,41 @@ orbs:
 workflows:
   package-and-push-chart-on-tag:
     jobs:
-      - architect/push-to-app-catalog:
-          context: 'architect'
-          executor: "app-build-suite"
-          name: 'package and push ailefroide-app chart'
-          app_catalog: 'giantswarm-playground-catalog'
-          app_catalog_test: 'giantswarm-playground-test-catalog'
-          chart: 'ailefroide-app'
+    - architect/push-to-app-catalog:
+        context: architect
+        executor: app-build-suite
+        name: package and push ailefroide-app chart
+        app_catalog: giantswarm-playground-catalog
+        app_catalog_test: giantswarm-playground-test-catalog
+        chart: ailefroide-app
           # Trigger job on git tag.
-          filters:
-            tags:
-              only: /^v.*/
+        filters:
+          tags:
+            only: /^v.*/
+          branches:
+            ignore:
+            - main
+            - master
   build_e2e:
     jobs:
-      - architect/go-build:
-          name: go-build-ailefroide
-          binary: ailefroide
-          filters:
+    - architect/go-build:
+        name: go-build-ailefroide
+        binary: ailefroide
+        filters:
             # Trigger the job also on git tag.
-            tags:
-              only: /^v.*/
-      - architect/push-to-registries:
-          context: architect
-          name: push-to-registries
-          requires:
-            - go-build-ailefroide
-          filters:
+          tags:
+            only: /^v.*/
+    - architect/push-to-registries:
+        context: architect
+        name: push-to-registries
+        requires:
+        - go-build-ailefroide
+        filters:
             # Trigger the job also on git tag.
-            tags:
-              only: /^v.*/
-          image: giantswarm/ailefroide
+          tags:
+            only: /^v.*/
+          branches:
+            ignore:
+            - main
+            - master
+        image: giantswarm/ailefroide
