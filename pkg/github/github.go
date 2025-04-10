@@ -84,9 +84,9 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 	)
 
 	var (
-		teams                   = make([]*aile.Team, 0)
-		teamchan chan aile.Team = make(chan aile.Team)
-		count, i int            = 0, 0
+		teams    = make([]*aile.Team, 0)
+		teamchan = make(chan aile.Team)
+		count, i = 0, 0
 	)
 	defer close(teamchan)
 
@@ -97,7 +97,7 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 			return
 		}
 		for _, item := range t {
-			var name string = item.GetSlug()
+			var name = item.GetSlug()
 			if pattern.Match([]byte(name)) {
 				count++
 				go g.getTeamViaChannel(g.organisation, name, &teamchan)
@@ -111,7 +111,7 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 	}
 
 	for i < count {
-		var team aile.Team = <-teamchan
+		var team = <-teamchan
 		teams = append(teams, &team)
 		i++
 	}
@@ -120,7 +120,7 @@ func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {
 }
 
 func (g *Github) getTeamViaChannel(org, team string, teamchan *chan aile.Team) {
-	var members []*aile.Member = g.getMembers(org, team)
+	var members = g.getMembers(org, team)
 	*teamchan <- aile.Team{
 		Name:    team,
 		Members: members,
@@ -143,8 +143,8 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 		}
 
 		for _, item := range u {
-			var login string = item.GetLogin()
-			var member aile.Member = aile.Member{
+			var login = item.GetLogin()
+			var member = aile.Member{
 				GithubLogin: login,
 			}
 			for _, p := range g.people {
@@ -165,7 +165,7 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 	}
 
 	// Add in any additional users from config
-	var exists bool = false
+	var exists = false
 	for k := range g.cfg.Teams {
 		if k == team {
 			exists = true
@@ -189,7 +189,7 @@ func (g *Github) getMembers(org, team string) (members []*aile.Member) {
 
 			m = strings.Trim(m, "@")
 			m = strings.ToLower(m)
-			var member aile.Member = aile.Member{
+			var member = aile.Member{
 				IncludeWhenNotAFK: true,
 			}
 

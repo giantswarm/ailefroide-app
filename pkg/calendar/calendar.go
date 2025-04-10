@@ -97,7 +97,7 @@ func (g *Calendar) CurrentShift() (start, end time.Time) {
 
 func (g *Calendar) GetConfigTime(cfg string, defaultH, defaultM int) (int, int) {
 	var (
-		h, m int = defaultH, defaultM
+		h, m = defaultH, defaultM
 	)
 
 	if current, err := time.Parse("15:04", cfg); err == nil {

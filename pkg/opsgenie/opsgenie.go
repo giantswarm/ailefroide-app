@@ -34,7 +34,7 @@ func NewOpsGenie(token string, calendar *ac.Calendar) *Opsgenie {
 
 func (o *Opsgenie) ListSchedules() (schedules []string) {
 	schedules = make([]string, 0)
-	var expand bool = false
+	var expand = false
 	lr := schedule.ListRequest{
 		Expand: &expand,
 	}
@@ -48,10 +48,10 @@ func (o *Opsgenie) ListSchedules() (schedules []string) {
 // Try and work out who is on call for a given schedule
 func (o *Opsgenie) WhoIsOnCall(team *aile.Team) {
 	var (
-		prefix         string   = strings.Split(team.Name, "-")[1]
-		timeSuffix     string   = "pm"
-		scheduleSuffix string   = "schedule"
-		schedules      []string = make([]string, 0)
+		prefix         = strings.Split(team.Name, "-")[1]
+		timeSuffix     = "pm"
+		scheduleSuffix = "schedule"
+		schedules      = make([]string, 0)
 	)
 
 	if o.calendar.IsMorning() {
@@ -66,7 +66,7 @@ func (o *Opsgenie) WhoIsOnCall(team *aile.Team) {
 
 	for _, scheduleName := range schedules {
 		var (
-			flat           bool = false
+			flat           = false
 			scheduleResult *schedule.GetOnCallsResult
 			err            error
 		)

@@ -105,7 +105,7 @@ func NewConfig(filename string) (*Config, error) {
 }
 
 func (c *Config) validate() error {
-	var messages []string = make([]string, 0)
+	var messages = make([]string, 0)
 	if c.SlackToken == "" {
 		messages = append(messages, "SLACK_TOKEN is missing")
 	}

@@ -76,7 +76,7 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 			}
 		}
 
-		var login string = team.Members[k].GithubLogin
+		var login = team.Members[k].GithubLogin
 		team.Members[k].IsAccountEngineer = g.IsAccountEngineer(login)
 		team.Members[k].IsProductOwner = g.IsProductOwner(login)
 		team.Members[k].IsSolutionArchitect = g.IsSolutionArchitect(login)
@@ -91,10 +91,10 @@ const PERSONIO_API = "https://api.personio.de/v1"
 
 func main() {
 	var (
-		cfg    *aile.Config = load()
+		cfg    = load()
 		people []*ap.Employee
 		e      error
-		creds  ap.Credentials = ap.Credentials{
+		creds  = ap.Credentials{
 			ClientId:     cfg.PersonioClientId,
 			ClientSecret: cfg.PersonioClientSecret,
 		}
@@ -113,11 +113,11 @@ func main() {
 	var (
 		afkEvents  []string
 		slackUsers []aile.Member
-		topchan    chan map[string][]string = make(chan map[string][]string)
+		topchan    = make(chan map[string][]string)
 		topics     map[string][]string
-		teams      []*aile.Team       = make([]*aile.Team, 0)
-		teamchan   chan []*aile.Team  = make(chan []*aile.Team)
-		userchan   chan []aile.Member = make(chan []aile.Member)
+		teams      = make([]*aile.Team, 0)
+		teamchan   = make(chan []*aile.Team)
+		userchan   = make(chan []aile.Member)
 	)
 	defer close(topchan)
 	defer close(teamchan)
@@ -145,6 +145,9 @@ func main() {
 		email := absence.Employee.GetStringAttribute("email")
 		if email == nil || aile.ContainsString(*email, afkEvents) {
 			continue
+		}
+		if *email == "martin@giantswarm.io" {
+			log.Printf("%+v\n", absence)
 		}
 		afkEvents = append(afkEvents, *email)
 	}

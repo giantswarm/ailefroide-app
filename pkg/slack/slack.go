@@ -53,15 +53,15 @@ func (s *Slack) checkError(err error) error {
 
 func (s *Slack) getUserGroups(expression string) {
 	var (
-		users      chan []slack.UserGroup = make(chan []slack.UserGroup)
-		pattern, _                        = regexp.Compile(expression)
+		users      = make(chan []slack.UserGroup)
+		pattern, _ = regexp.Compile(expression)
 	)
 	defer close(users)
 	go func() {
 		for {
 			ug, err := s.client.GetUserGroups()
 			if err == nil {
-				var usergroups []slack.UserGroup = make([]slack.UserGroup, 0)
+				usergroups := make([]slack.UserGroup, 0)
 				for _, item := range ug {
 					if pattern.Match([]byte(item.Handle)) {
 						usergroups = append(usergroups, item)
@@ -81,7 +81,7 @@ func (s *Slack) getUserGroups(expression string) {
 // CreateUserGroup Create a user group on the slack api
 func (s *Slack) CreateUserGroup(name, description string, topics []string, members []string, ug chan slack.UserGroup) {
 	var (
-		group slack.UserGroup = slack.UserGroup{
+		group = slack.UserGroup{
 			Name:        name,
 			Handle:      name,
 			Description: description,
@@ -139,7 +139,7 @@ func (s *Slack) updateUserGroup(name, id, description string, members []string) 
 
 	log.Println("Updating usergroup members for", name)
 	for {
-		var m string = strings.Join(members, ",")
+		m := strings.Join(members, ",")
 		_, err = s.client.UpdateUserGroupMembers(id, m)
 		if err == nil || s.checkError(err) != nil {
 			break
@@ -152,16 +152,17 @@ func (s *Slack) updateUserGroup(name, id, description string, members []string) 
 // CreateOrUpdateUserGroup Tries to work out of the group exists and updates it if so, else creates it
 func (s *Slack) CreateOrUpdateUserGroup(name string, topics []string, members []string, done *chan bool) {
 	var (
-		description string               = "Support channel for requests relating to " + strings.Join(topics, ", ")
-		usergroup   chan slack.UserGroup = make(chan slack.UserGroup)
-		existing    bool                 = false
-		id          string               = ""
+		description = "Support channel for requests relating to " + strings.Join(topics, ", ")
+		usergroup   = make(chan slack.UserGroup)
+		existing    = false
+		id          = ""
 	)
 
 	pattern := regexp.MustCompile(`[^a-zA-Z0-9,-. ]+`)
 	description = pattern.ReplaceAllString(description, "")
 
 	if len(description) > MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH {
+		log.Printf("Truncating description %q to %d\n", description, MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH)
 		description = description[:MAX_SLACK_USERGROUP_DESCRIPTION_LENGTH-3] + "..."
 	}
 
@@ -193,10 +194,10 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []*ap.Emplo
 	log.Println("Retrieving personio users from slack")
 	var (
 		err         error
-		membersChan chan aile.Member = make(chan aile.Member)
-		members     []aile.Member    = make([]aile.Member, 0)
-		count       int              = 0
-		done        chan bool        = make(chan bool)
+		membersChan = make(chan aile.Member)
+		members     = make([]aile.Member, 0)
+		count       = 0
+		done        = make(chan bool)
 	)
 
 	go func(membersChan *chan aile.Member, count *int, people []*ap.Employee) {
@@ -211,7 +212,7 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []*ap.Emplo
 			for _, user := range p.Users {
 				go func(user slack.User) {
 					for _, person := range people {
-						var email *string = person.GetStringAttribute("email")
+						email := person.GetStringAttribute("email")
 						if strings.EqualFold(user.Profile.Email, *email) {
 							*count++
 							*membersChan <- aile.Member{
@@ -228,27 +229,22 @@ func (s *Slack) GetPersonioUsersPaginated(matchDomain string, people []*ap.Emplo
 	}(&membersChan, &count, people)
 
 	<-done
-	var i int = 0
+	i := 0
 	for i < count {
-		select {
-		case user := <-membersChan:
-			members = append(members, user)
-			i++
-		case <-done:
-			break
-		}
+		user := <-membersChan
+		members = append(members, user)
+		i++
 	}
 
 	log.Println("Done retrieving slack users")
 	*userchan <- members
-
 }
 
 // Topics Get topics from slack channels matching the team prefix.
 func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 	log.Println("Retrieving topics from slack")
-	var topics = make(map[string][]string)
-	var pattern, _ = regexp.Compile(match)
+	topics := make(map[string][]string)
+	pattern, _ := regexp.Compile(match)
 	slackChans := make([]slack.Channel, 0)
 	initChans, initCur, err := s.client.GetConversations(
 		&slack.GetConversationsParameters{
@@ -291,7 +287,8 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 	}
 	for _, channel := range slackChans {
 		if pattern.Match([]byte(channel.Name)) {
-			var topicList []string = strings.Split(channel.Topic.Value, ",")
+			log.Printf("Checking channel '%q' topic '%q'\n", channel.Name, channel.Topic.Value)
+			topicList := strings.Split(channel.Topic.Value, ",")
 			topics[channel.Name] = make([]string, 0)
 			for _, item := range topicList {
 				topics[channel.Name] = append(topics[channel.Name], strings.TrimSpace(item))
@@ -305,10 +302,10 @@ func (s *Slack) Topics(match string, topchan *chan map[string][]string) {
 // SlackHandles Create slack handles for support
 func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 	var (
-		supportTeams                      = make(map[string][]string)
-		teamTopics                        = make(map[string][]string)
-		supportTopics                     = make(map[string][]string)
-		defaultSettings aile.TeamSettings = aile.TeamSettings{
+		supportTeams    = make(map[string][]string)
+		teamTopics      = make(map[string][]string)
+		supportTopics   = make(map[string][]string)
+		defaultSettings = aile.TeamSettings{
 			SkipRotation:             true,
 			IncludeOnCallEngineer:    true,
 			IncludeProductOwner:      true,
@@ -318,7 +315,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 	)
 
 	for _, team := range teams {
-		var f bool = false
+		f := false
 		for k := range s.teamSettings {
 			if k == team.Name {
 				f = true
@@ -331,9 +328,9 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 		}
 
 		var (
-			supportName  string            = "support-" + strings.Split(team.Name, "-")[1]
-			members      []string          = make([]string, 0)
-			teamSettings aile.TeamSettings = s.teamSettings[team.Name]
+			supportName  = "support-" + strings.Split(team.Name, "-")[1]
+			members      = make([]string, 0)
+			teamSettings = s.teamSettings[team.Name]
 		)
 
 		if teamSettings.SkipRotation || (debugTeam != "" && team.Name != debugTeam) {
@@ -348,19 +345,19 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 
 		for _, m := range team.Members {
 			var (
-				includeProductOwner     bool = (m.IsProductOwner && teamSettings.IncludeProductOwner)
-				includePlaformArchitect bool = (m.IsPlatformArchitect && teamSettings.IncludePlatformArchitect)
-				includeSRE              bool = (m.IsSiteReliabilityEngineer && teamSettings.IncludeSRE)
-				includeOncall           bool = (m.Oncall && teamSettings.IncludeOnCallEngineer)
-				primary                 bool = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
-				secondary               bool = (includeOncall || includePlaformArchitect || includeSRE)
+				includeProductOwner     = (m.IsProductOwner && teamSettings.IncludeProductOwner)
+				includePlaformArchitect = (m.IsPlatformArchitect && teamSettings.IncludePlatformArchitect)
+				includeSRE              = (m.IsSiteReliabilityEngineer && teamSettings.IncludeSRE)
+				includeOncall           = (m.Oncall && teamSettings.IncludeOnCallEngineer)
+				primary                 = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
+				secondary               = (includeOncall || includePlaformArchitect || includeSRE)
 			)
 
 			if m.Email == "" {
 				log.Printf("Skipping user with no email address %+v", m)
 			}
 
-			var message string = fmt.Sprintf("%s is NOT", m.Email)
+			message := fmt.Sprintf("%s is NOT", m.Email)
 			if (primary || secondary || m.IncludeWhenNotAFK) && m.SlackID != "" && !m.Afk {
 				message = fmt.Sprintf("%s is", m.Email)
 				if debug {
@@ -377,9 +374,9 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 	}
 
 	var (
-		teamsDone  chan bool = make(chan bool)
-		topicsDone chan bool = make(chan bool)
-		te, to     int       = 0, 0
+		teamsDone  = make(chan bool)
+		topicsDone = make(chan bool)
+		te, to     = 0, 0
 	)
 
 	if debug {
@@ -392,7 +389,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 	}
 
 	for k, v := range supportTopics {
-		var users []string = make([]string, 0)
+		users := make([]string, 0)
 		for _, handle := range v {
 			users = append(users, supportTeams[handle]...)
 		}
@@ -420,7 +417,7 @@ func (s *Slack) debug(supportTeams, supportTopics map[string][]string) {
 	}
 
 	for k, v := range supportTopics {
-		var users []string = make([]string, 0)
+		users := make([]string, 0)
 		fmt.Printf("%s: %v (", k, v)
 		for _, handle := range v {
 			users = append(users, supportTeams[handle]...)

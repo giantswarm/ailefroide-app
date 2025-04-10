@@ -1,4 +1,3 @@
----
 config:
   # Specifies the domain the system is running against
   domain: "giantswarm.io"
@@ -15,51 +14,85 @@ config:
   # A github team containing product owners
   productOwners: product-owners
 
-  # A github group for platform architects
-  platformArchitects: chapter-architecture
-
-  # A github group for site reliability engineers
-  siteReliabilityEngineers: chapter-sre
-
   # The google calendar to use for AFK entries
-  # This should be the full calendar URL
-  calendarId:
+  calendarId: giantswarm.io_u9j5eaid81sl9b8cd73novr7do@group.calendar.google.com
 
   # A path to the calendar service account credentials file
   calendarCredentialsFile: token.json
 
   # The ID of the custom field in personio used for Github usernames
-  personioGithubFieldId:
+  personioGithubFieldId: dynamic_3196204
 
   # github app settings
   github:
-    # Set this to your github app id
-    appId:
-    # set this to the installation id for your github app
-    # - you may need to get this from the app URL in github
-    installationId:
-    # Set this to the name of your certificate PEM file
+    appId: 270662
+    installationId: 32026483
     privateKey: github.pem
 
-  # team specific custom settings
   teams:
-    # Copy this block and add it to the deployment values
-    team-EXAMPLE:
-      # Enables or disables rotation for your team. Default true there is no entry for your team, false if not.
-      skipRotation: true
+    team-honeybadger:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover: []
+    team-horizon:
+      skipRotation: false
+      includePo: false
+      includeOCE: false
+      includeSRE: false
+      includePa: false
+      extraCover:
+        - puja108
+    team-phoenix:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover:
+        - pipo02mix
+    team-cabbage:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover: []
+    team-atlas:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover: []
+    team-shield:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: true
+      includePa: false
+      extraCover: []
+    team-turtles:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover: []
+    team-rocket:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover: []
+    team-bigmac:
+      skipRotation: false
+      includePo: true
+      includeOCE: true
+      includeSRE: false
+      includePa: false
+      extraCover: []
 
-      # Include your teams product owner. Default true if not specified
-      # includePo: true
-
-      # Include your teams on call engineer. Default true if not specified
-      # includeOCE: true
-
-      # Include your teams Platform architect. Default false if not specified
-      # includePa: false
-
-      # Include your teams Site reliability engineer. Default false if not specified
-      # IncludeSRE: false
-
-      # A list of Github usernames or email addresses of additional people to include in your team
-      # This **should not** include existing team members
-      # extraCover: []
