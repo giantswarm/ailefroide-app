@@ -356,6 +356,9 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 			if m.Email == "" {
 				log.Printf("Skipping user with no email address %+v", m)
 			}
+			if m.Oncall && m.Afk {
+				m.Afk = false
+			}
 
 			message := fmt.Sprintf("%s is NOT", m.Email)
 			if (primary || secondary || m.IncludeWhenNotAFK) && m.SlackID != "" && !m.Afk {
