@@ -14,7 +14,7 @@ import (
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 	ac "github.com/giantswarm/ailefroide/pkg/calendar"
 	ag "github.com/giantswarm/ailefroide/pkg/github"
-	ao "github.com/giantswarm/ailefroide/pkg/opsgenie"
+	ao "github.com/giantswarm/ailefroide/pkg/pagerduty"
 	as "github.com/giantswarm/ailefroide/pkg/slack"
 )
 
@@ -68,7 +68,7 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 			}
 		}
 
-		var include = false
+		include := false
 		for _, n := range ec {
 			if strings.EqualFold(team.Members[k].Email, n) || strings.EqualFold(team.Members[k].GithubLogin, n) {
 				include = true
@@ -76,7 +76,7 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 			}
 		}
 
-		var login = team.Members[k].GithubLogin
+		login := team.Members[k].GithubLogin
 		team.Members[k].IsAccountEngineer = g.IsAccountEngineer(login)
 		team.Members[k].IsProductOwner = g.IsProductOwner(login)
 		team.Members[k].IsSolutionArchitect = g.IsSolutionArchitect(login)
@@ -108,7 +108,7 @@ func main() {
 	g := ag.NewGithub(cfg, people)
 	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries, cfg.Teams)
 	c := ac.NewCalendar(cfg)
-	o := ao.NewOpsGenie(cfg.OpsGenieToken, c)
+	o := ao.New(cfg.PagerDutyToken, c)
 
 	var (
 		afkEvents  []string

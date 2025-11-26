@@ -40,6 +40,7 @@ type Config struct {
 
 	// Credentials
 	OpsGenieToken        string `yaml:"opsGenieToken,omitempty"`
+	PagerDutyToken       string `yaml:"pagerDutyToken,omitempty"`
 	SlackToken           string `yaml:"slackToken,omitempty"`
 	PersonioClientId     string `yaml:"persionioClientId"`
 	PersonioClientSecret string `yaml:"persionioClientSecret"`
@@ -96,6 +97,10 @@ func NewConfig(filename string) (*Config, error) {
 		c.PersonioClientSecret = ps
 	}
 
+	if pg := os.Getenv("PAGERDUTY_TOKEN"); pg != "" {
+		c.PagerDutyToken = pg
+	}
+
 	if cfg.Config.Teams == nil {
 		cfg.Config.Teams = make(map[string]TeamSettings)
 	}
@@ -105,7 +110,7 @@ func NewConfig(filename string) (*Config, error) {
 }
 
 func (c *Config) validate() error {
-	var messages = make([]string, 0)
+	messages := make([]string, 0)
 	if c.SlackToken == "" {
 		messages = append(messages, "SLACK_TOKEN is missing")
 	}
@@ -117,6 +122,9 @@ func (c *Config) validate() error {
 	}
 	if c.PersonioClientSecret == "" {
 		messages = append(messages, "PERSONIO_CLIENT_SECRET is missing")
+	}
+	if c.PagerDutyToken == "" {
+		messages = append(messages, "PAGERDUTY_TOKEN is missing")
 	}
 
 	if len(messages) > 0 {
