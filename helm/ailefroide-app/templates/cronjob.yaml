@@ -14,7 +14,6 @@ spec:
       parallelism: 1
       successfulJobsHistoryLimit: 10
       failedJobsHistoryLimit: 3
-      ttlSecondsAfterFinished: 600
       template:
         spec:
           securityContext:
