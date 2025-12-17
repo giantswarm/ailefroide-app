@@ -56,7 +56,12 @@ func (o *PagerDuty) WhoIsOnCall(team *aile.Team) {
 		splitSchedule := strings.Join([]string{prefix, timeSuffix}, "_")
 		singleSchedule := strings.Join([]string{prefix, scheduleSuffix}, " ")
 
+		if strings.HasSuffix(item, "(Catchup)") {
+			continue
+		}
+
 		if strings.HasPrefix(item, splitSchedule) || item == singleSchedule {
+			log.Println("Checking schedule ", item)
 			schedules = append(schedules, id)
 		}
 	}

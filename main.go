@@ -89,6 +89,13 @@ func parseTeamMembers(team *aile.Team, slackUsers []aile.Member, afkEvents []str
 
 const PERSONIO_API = "https://api.personio.de/v1"
 
+func isBetween(t, min, max time.Time) bool {
+	if min.After(max) {
+		min, max = max, min
+	}
+	return (t.Equal(min) || t.After(min)) && (t.Equal(max) || t.Before(max))
+}
+
 func main() {
 	var (
 		cfg    = load()
@@ -146,10 +153,11 @@ func main() {
 		if email == nil || aile.ContainsString(*email, afkEvents) {
 			continue
 		}
-		if *email == "martin@giantswarm.io" {
-			log.Printf("%+v\n", absence)
+
+		if isBetween(time.Now(), absence.StartDate, absence.EndDate) {
+			log.Printf("Logging AFK for %s - Start %s : End %s\n", *email, absence.StartDate, absence.EndDate)
+			afkEvents = append(afkEvents, *email)
 		}
-		afkEvents = append(afkEvents, *email)
 	}
 
 	for _, t := range <-teamchan {
