@@ -1,29 +1,30 @@
 version: 2.1
 orbs:
-  architect: giantswarm/architect@6.8.0
+  architect: giantswarm/architect@9.6.0
 
 workflows:
   package-and-push-chart-on-tag:
     jobs:
       - architect/push-to-app-catalog:
           context: architect
-          executor: app-build-suite
           name: package and push ailefroide-app chart
           app_catalog: giantswarm-playground-catalog
           app_catalog_test: giantswarm-playground-test-catalog
-          chart:
-            ailefroide-app
-            # Trigger job on git tag.
+          chart: ailefroide-app
           filters:
+            # Trigger job on git tag.
             tags:
               only: /^v.*/
             branches:
               ignore:
                 - main
                 - master
-  build_e2e:
+  build:
     jobs:
       - architect/go-build:
+          # Needed by the default `sign: true`, which mints a GitHub token to
+          # resolve repo visibility before signing. Private repos skip signing.
+          context: architect
           name: go-build-ailefroide
           binary: ailefroide
           filters:
@@ -35,6 +36,7 @@ workflows:
           name: push-to-registries
           requires:
             - go-build-ailefroide
+          image: giantswarm/ailefroide
           filters:
             # Trigger the job also on git tag.
             tags:
@@ -43,4 +45,3 @@ workflows:
               ignore:
                 - main
                 - master
-          image: giantswarm/ailefroide

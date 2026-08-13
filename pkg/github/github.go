@@ -2,16 +2,18 @@ package github
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"regexp"
 	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
+
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 
 	ap "github.com/giantswarm/personio-go/v1"
-	"github.com/google/go-github/v47/github"
+	"github.com/google/go-github/v88/github"
 )
 
 type Github struct {
@@ -31,7 +33,7 @@ type Github struct {
 	people                   []*ap.Employee
 }
 
-func NewGithub(cfg *aile.Config, people []*ap.Employee) *Github {
+func NewGithub(cfg *aile.Config, people []*ap.Employee) (*Github, error) {
 	log.Println("Setting up Github")
 	g := Github{
 		organisation: cfg.Organisation,
@@ -44,8 +46,15 @@ func NewGithub(cfg *aile.Config, people []*ap.Employee) *Github {
 		people:       people,
 	}
 
-	itr, _ := ghinstallation.NewKeyFromFile(http.DefaultTransport, cfg.Gh.AppId, cfg.Gh.InstallationId, cfg.Gh.PrivateKey)
-	g.client = github.NewClient(&http.Client{Transport: itr})
+	// A discarded error here leaves itr nil, so every later API call fails with
+	// an unrelated transport error instead of naming the unreadable key.
+	itr, err := ghinstallation.NewKeyFromFile(http.DefaultTransport, cfg.Gh.AppId, cfg.Gh.InstallationId, cfg.Gh.PrivateKey)
+	if err != nil {
+		return nil, fmt.Errorf("loading GitHub App key %s: %w", cfg.Gh.PrivateKey, err)
+	}
+	if g.client, err = github.NewClient(github.WithHTTPClient(&http.Client{Transport: itr})); err != nil {
+		return nil, fmt.Errorf("creating GitHub client: %w", err)
+	}
 
 	g.solutionArchitects = make([]*aile.Member, 0)
 	g.accountEngineers = make([]*aile.Member, 0)
@@ -72,7 +81,7 @@ func NewGithub(cfg *aile.Config, people []*ap.Employee) *Github {
 
 	log.Println("Done setting up github")
 
-	return &g
+	return &g, nil
 }
 
 func (g *Github) Teams(org, match string, teamschan *chan []*aile.Team) {

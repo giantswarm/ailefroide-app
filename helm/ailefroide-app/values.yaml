@@ -20,7 +20,7 @@ configMap:
     github.pem: ""
 
 image:
-  repository: quay.io/giantswarm/ailefroide
+  repository: gsoci.azurecr.io/giantswarm/ailefroide
   pullPolicy: Always
   tag: ""
 
