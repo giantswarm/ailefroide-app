@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
+
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 
 	ap "github.com/giantswarm/personio-go/v1"
