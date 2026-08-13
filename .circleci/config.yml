@@ -22,6 +22,9 @@ workflows:
   build:
     jobs:
       - architect/go-build:
+          # Needed by the default `sign: true`, which mints a GitHub token to
+          # resolve repo visibility before signing. Private repos skip signing.
+          context: architect
           name: go-build-ailefroide
           binary: ailefroide
           filters:
