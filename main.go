@@ -115,7 +115,11 @@ func main() {
 	g := ag.NewGithub(cfg, people)
 	s := as.NewSlack(cfg.SlackToken, SUPPORT_PATTERN, cfg.PagingEntries, cfg.Teams)
 	c := ac.NewCalendar(cfg)
-	o := ao.New(cfg.PagerDutyToken, c)
+	o, e := ao.New(cfg.PagerDutyToken, c)
+	if e != nil {
+		log.Println("Error setting up PagerDuty", e)
+		os.Exit(1)
+	}
 
 	var (
 		afkEvents  []string

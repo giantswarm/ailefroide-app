@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Ignore the per-member escalation-layer schedule copies PagerDuty now creates (`... (1)`, `... (2)`, ...), which matched the team prefix and marked every member as on call.
+- Page through the PagerDuty schedule list. The escalation ladder pushed the account well past the 25 schedules a single unpaginated call returns, so most teams' primary schedules were never seen.
+- Skip the on-call lookup when no schedule matches a team, instead of asking PagerDuty for every on-call in the account.
+- Surface PagerDuty client and schedule-listing errors instead of discarding them.
+- Point `image.repository` at `gsoci.azurecr.io/giantswarm/ailefroide`. `quay.io` was dropped from the CI registry list and has held nothing newer than `0.4.0` since October 2024.
+
 ### Changed
 
+- Update the `architect` orb to `9.6.0` (was `6.8.0`).
+- Build the container image for `linux/amd64` and `linux/arm64`, selecting the matching binary via `TARGETARCH`.
+- Update the base image to `alpine:3.24.1` (was `3.16.2`, EOL since May 2024).
+- Drop the deprecated no-op `replace-chart-version-with-git` / `replace-app-version-with-git` keys from `.abs/main.yaml`; the orb now stamps versions with `--override-chart-version` / `--override-app-version`.
 - Regenerate `.github/workflows/zz_generated.*.yaml` via devctl to use the centralized reusable workflow, removing the Node-20 `mindsers/changelog-reader-action` dependency.
 
 ## [0.6.0] - 2025-12-17
