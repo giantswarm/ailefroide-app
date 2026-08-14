@@ -26,7 +26,11 @@ workflows:
           # resolve repo visibility before signing. Private repos skip signing.
           context: architect
           name: go-build-ailefroide
-          binary: ailefroide
+          # Matches the repo name, which is what devctl will emit here once
+          # this config is generated (the template hardcodes the repo name and
+          # offers no override). Keeping the two in step means the Dockerfile's
+          # COPY source does not have to change again at that point.
+          binary: ailefroide-app
           filters:
             # Trigger the job also on git tag.
             tags:

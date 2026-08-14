@@ -6,4 +6,8 @@ ARG TARGETARCH
 
 RUN apk --no-cache add ca-certificates tzdata
 
-COPY --chmod=0755 ./ailefroide-linux-${TARGETARCH} /opt/ailefroide
+# The binary is named after the repository. devctl derives go-build's `binary`
+# param from the repo name and offers no override, so this must stay
+# ailefroide-app-* even though the image and the installed path are
+# ailefroide. See giantswarm/github#5775.
+COPY --chmod=0755 ./ailefroide-app-linux-${TARGETARCH} /opt/ailefroide

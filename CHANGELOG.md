@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rename the built binary from `ailefroide` to `ailefroide-app`, and update the `Dockerfile`'s `COPY` source to match. This repo is being registered under `chapter-se` in [giantswarm/github#5775](https://github.com/giantswarm/github/pull/5775) with `gen.ci.generate`, which puts `.circleci/config.yml` under `devctl`. The generator hardcodes `architect/go-build`'s `binary` param to the repository name and offers no override, so the artifacts become `ailefroide-app-linux-{amd64,arm64}`. Moving the name now keeps the config and the Dockerfile in step, so the align PR does not land a config whose artifacts the Dockerfile cannot find. The installed path inside the image stays `/opt/ailefroide` and the published image stays `giantswarm/ailefroide` (pinned via `gen.ci.image.name`), so the chart is unaffected.
+
 ## [0.7.0] - 2026-08-13
 
 ### Fixed
