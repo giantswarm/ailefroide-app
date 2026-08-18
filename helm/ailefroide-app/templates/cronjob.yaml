@@ -8,12 +8,12 @@ metadata:
 spec:
   schedule: {{ .Values.rotation.schedule | quote }}
   concurrencyPolicy: Replace
+  successfulJobsHistoryLimit: 10
+  failedJobsHistoryLimit: 3
   jobTemplate:
     spec:
       backoffLimit: 1
       parallelism: 1
-      successfulJobsHistoryLimit: 10
-      failedJobsHistoryLimit: 3
       template:
         spec:
           securityContext:

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Move `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` in the CronJob template out of `jobTemplate.spec` (a `JobSpec`, which has no such fields) and up to the top-level `spec` (`CronJobSpec`, where they belong). The Kubernetes API server's non-strict decode silently dropped the misplaced fields and applied its own defaults instead, so no live apply ever errored, but the chart's intended history limits never actually took effect. A stricter schema check (`flux schema validate`) catches the misplacement.
+
 ### Changed
 
 - Rename the built binary from `ailefroide` to `ailefroide-app`, and update the `Dockerfile`'s `COPY` source to match. This repo is being registered under `chapter-se` in [giantswarm/github#5775](https://github.com/giantswarm/github/pull/5775) with `gen.ci.generate`, which puts `.circleci/config.yml` under `devctl`. The generator hardcodes `architect/go-build`'s `binary` param to the repository name and offers no override, so the artifacts become `ailefroide-app-linux-{amd64,arm64}`. Moving the name now keeps the config and the Dockerfile in step, so the align PR does not land a config whose artifacts the Dockerfile cannot find. The installed path inside the image stays `/opt/ailefroide` and the published image stays `giantswarm/ailefroide` (pinned via `gen.ci.image.name`), so the chart is unaffected.
