@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-19
+
 ### Fixed
 
 - This is the release process fix only, no functional changes.
@@ -164,7 +166,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Release first stable version.
 
-[Unreleased]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.4.0...v0.5.0
