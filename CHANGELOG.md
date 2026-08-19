@@ -7,14 +7,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
-## [0.7.1] - 2026-08-19
-
-### Fixed
-
-- This is the release process fix only, no functional changes.
-
-## [0.7.1] - 2026-08-18
-
 ### Fixed
 
 - Move `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` in the CronJob template out of
