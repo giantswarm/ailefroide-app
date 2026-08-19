@@ -2,47 +2,80 @@
 
 All notable changes to this project will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
 ### Fixed
 
-- Move `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` in the CronJob template out of `jobTemplate.spec` (a `JobSpec`, which has no such fields) and up to the top-level `spec` (`CronJobSpec`, where they belong). The Kubernetes API server's non-strict decode silently dropped the misplaced fields and applied its own defaults instead, so no live apply ever errored, but the chart's intended history limits never actually took effect. A stricter schema check (`flux schema validate`) catches the misplacement.
+- This is the release process fix only, no functional changes.
+
+## [0.7.1] - 2026-08-18
+
+### Fixed
+
+- Move `successfulJobsHistoryLimit` and `failedJobsHistoryLimit` in the CronJob template out of
+  `jobTemplate.spec` (a `JobSpec`, which has no such fields) and up to the top-level `spec` (`CronJobSpec`,
+  where they belong). The Kubernetes API server's non-strict decode silently dropped the misplaced fields and
+  applied its own defaults instead, so no live apply ever errored, but the chart's intended history limits
+  never actually took effect. A stricter schema check (`flux schema validate`) catches the misplacement.
 
 ### Changed
 
-- Rename the built binary from `ailefroide` to `ailefroide-app`, and update the `Dockerfile`'s `COPY` source to match. This repo is being registered under `chapter-se` in [giantswarm/github#5775](https://github.com/giantswarm/github/pull/5775) with `gen.ci.generate`, which puts `.circleci/config.yml` under `devctl`. The generator hardcodes `architect/go-build`'s `binary` param to the repository name and offers no override, so the artifacts become `ailefroide-app-linux-{amd64,arm64}`. Moving the name now keeps the config and the Dockerfile in step, so the align PR does not land a config whose artifacts the Dockerfile cannot find. The installed path inside the image stays `/opt/ailefroide` and the published image stays `giantswarm/ailefroide` (pinned via `gen.ci.image.name`), so the chart is unaffected.
+- Rename the built binary from `ailefroide` to `ailefroide-app`, and update the `Dockerfile`'s `COPY` source
+  to match. This repo is being registered under `chapter-se` in
+  [giantswarm/github#5775](https://github.com/giantswarm/github/pull/5775) with `gen.ci.generate`, which puts
+  `.circleci/config.yml` under `devctl`. The generator hardcodes `architect/go-build`'s `binary` param to the
+  repository name and offers no override, so the artifacts become `ailefroide-app-linux-{amd64,arm64}`. Moving
+  the name now keeps the config and the Dockerfile in step, so the align PR does not land a config whose
+  artifacts the Dockerfile cannot find. The installed path inside the image stays `/opt/ailefroide` and the
+  published image stays `giantswarm/ailefroide` (pinned via `gen.ci.image.name`), so the chart is unaffected.
 
 ## [0.7.0] - 2026-08-13
 
 ### Fixed
 
-- Ignore the per-member escalation-layer schedule copies PagerDuty now creates (`... (1)`, `... (2)`, ...), which matched the team prefix and marked every member as on call.
-- Page through the PagerDuty schedule list. The escalation ladder pushed the account well past the 25 schedules a single unpaginated call returns, so most teams' primary schedules were never seen.
-- Skip the on-call lookup when no schedule matches a team, instead of asking PagerDuty for every on-call in the account.
+- Ignore the per-member escalation-layer schedule copies PagerDuty now creates (`... (1)`, `... (2)`, ...),
+  which matched the team prefix and marked every member as on call.
+- Page through the PagerDuty schedule list. The escalation ladder pushed the account well past the 25
+  schedules a single unpaginated call returns, so most teams' primary schedules were never seen.
+- Skip the on-call lookup when no schedule matches a team, instead of asking PagerDuty for every on-call in
+  the account.
 - Surface PagerDuty client and schedule-listing errors instead of discarding them.
-- Point `image.repository` at `gsoci.azurecr.io/giantswarm/ailefroide`. `quay.io` was dropped from the CI registry list and has held nothing newer than `0.4.0` since October 2024.
+- Point `image.repository` at `gsoci.azurecr.io/giantswarm/ailefroide`. `quay.io` was dropped from the CI
+  registry list and has held nothing newer than `0.4.0` since October 2024.
 
 ### Security
 
 - Resolve all 20 open Dependabot advisories:
-  - `golang.org/x/crypto` (17 advisories, 8 critical) is no longer required at all. It was pulled in solely by `go-github/v47`'s use of the unmaintained `golang.org/x/crypto/openpgp` (`GO-2026-5932`, no fix available); `go-github` v74+ replaced that with a `MessageSigner` interface, so bumping to `v88` drops the module from the graph.
+  - `golang.org/x/crypto` (17 advisories, 8 critical) is no longer required at all. It was pulled in solely by
+    `go-github/v47`'s use of the unmaintained `golang.org/x/crypto/openpgp` (`GO-2026-5932`, no fix
+    available); `go-github` v74+ replaced that with a `MessageSigner` interface, so bumping to `v88` drops the
+    module from the graph.
   - `github.com/golang-jwt/jwt/v4` `v4.4.1` -> `v4.5.2` (`GHSA-mh63-6h87-95cp`, `GHSA-29wx-vh33-7x7r`).
   - `github.com/slack-go/slack` `v0.11.2` -> `v0.23.1` (`GHSA-gxhx-2686-5h9g`).
-- `govulncheck` under the CI toolchain (go1.26.4) now reports zero module vulnerabilities. The one remaining finding is `GO-2026-5856` in `crypto/tls`, fixed in go1.26.5 and therefore owned by the `architect` image rather than this repository.
+- `govulncheck` under the CI toolchain (go1.26.4) now reports zero module vulnerabilities. The one remaining
+  finding is `GO-2026-5856` in `crypto/tls`, fixed in go1.26.5 and therefore owned by the `architect` image
+  rather than this repository.
 
 ### Changed
 
 - Update the `architect` orb to `9.6.0` (was `6.8.0`).
-- Update `github.com/google/go-github` `v47` -> `v88` and `github.com/bradleyfalzon/ghinstallation/v2` `v2.1.0` -> `v2.19.0`. `github.NewClient` gained an options form returning an error, so the client is now built with `github.WithHTTPClient`.
+- Update `github.com/google/go-github` `v47` -> `v88` and `github.com/bradleyfalzon/ghinstallation/v2`
+  `v2.1.0` -> `v2.19.0`. `github.NewClient` gained an options form returning an error, so the client is now
+  built with `github.WithHTTPClient`.
 - Raise the `go` directive to `1.25.0`, required by the updated dependencies. CI builds with go1.26.4.
-- Surface the discarded error from `ghinstallation.NewKeyFromFile`. It left the transport nil, so an unreadable App key surfaced later as an unrelated transport failure instead of naming the key. `NewGithub` now returns an error and `main` exits on it.
-- Build the container image for `linux/amd64` and `linux/arm64`, selecting the matching binary via `TARGETARCH`.
+- Surface the discarded error from `ghinstallation.NewKeyFromFile`. It left the transport nil, so an
+  unreadable App key surfaced later as an unrelated transport failure instead of naming the key. `NewGithub`
+  now returns an error and `main` exits on it.
+- Build the container image for `linux/amd64` and `linux/arm64`, selecting the matching binary via
+  `TARGETARCH`.
 - Update the base image to `alpine:3.24.1` (was `3.16.2`, EOL since May 2024).
-- Drop the deprecated no-op `replace-chart-version-with-git` / `replace-app-version-with-git` keys from `.abs/main.yaml`; the orb now stamps versions with `--override-chart-version` / `--override-app-version`.
-- Regenerate `.github/workflows/zz_generated.*.yaml` via devctl to use the centralized reusable workflow, removing the Node-20 `mindsers/changelog-reader-action` dependency.
+- Drop the deprecated no-op `replace-chart-version-with-git` / `replace-app-version-with-git` keys from
+  `.abs/main.yaml`; the orb now stamps versions with `--override-chart-version` / `--override-app-version`.
+- Regenerate `.github/workflows/zz_generated.*.yaml` via devctl to use the centralized reusable workflow,
+  removing the Node-20 `mindsers/changelog-reader-action` dependency.
 
 ## [0.6.0] - 2025-12-17
 
@@ -92,8 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Support handles were being matched on name rather than handle which caused teams
-  to be missed from rotation
+- Support handles were being matched on name rather than handle which caused teams to be missed from rotation
 
 ## [0.3.0] - 2023-10-10
 
