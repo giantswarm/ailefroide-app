@@ -161,7 +161,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Release first stable version.
 
 [Unreleased]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.2...HEAD
-[0.7.2]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.1...v0.7.2
+[0.7.2]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.0...v0.7.2
 [0.7.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.4.0...v0.5.0
