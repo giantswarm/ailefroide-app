@@ -11,7 +11,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 apiVersion: v1
-version: 0.7.1
+version: 0.7.2
 appVersion: "0.7.1"
 description: A Helm chart for Ailefroide, the Slack support handle manager
 home: https://github.com/giantswarm/ailefroide-app
