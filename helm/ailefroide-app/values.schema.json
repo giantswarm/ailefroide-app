@@ -1,18 +1,53 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
     "type": "object",
+    "additionalProperties": false,
     "properties": {
         "affinity": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": false
+        },
+        "baseDomain": {
+            "type": "string"
+        },
+        "bootstrapMode": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "chartOperator": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "ciliumNetworkPolicy": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "cluster": {
+            "type": "object",
+            "additionalProperties": true
+        },
+        "clusterCA": {
+            "type": "string"
+        },
+        "clusterCIDR": {
+            "type": "string"
+        },
+        "clusterDNSIP": {
+            "type": "string"
+        },
+        "clusterID": {
+            "type": "string"
         },
         "configMap": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "name": {
                     "type": "string"
                 },
                 "values": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "config.yaml": {
                             "type": "string"
@@ -32,12 +67,14 @@
         },
         "envSecret": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "name": {
                     "type": "string"
                 },
                 "values": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "OPSGENIE_TOKEN": {
                             "type": "string"
@@ -58,8 +95,20 @@
         "fullnameOverride": {
             "type": "string"
         },
+        "gcpProject": {
+            "type": "string"
+        },
+        "global": {
+            "type": [
+                "object",
+                "null"
+            ],
+            "description": "Global values shared between all subcharts",
+            "$comment": "Added automatically by 'helm schema' to allow this chart to be used as a Helm dependency, as the `additionalProperties` setting would otherwise collide with Helm's special 'global' values key."
+        },
         "image": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "pullPolicy": {
                     "type": "string"
@@ -79,10 +128,12 @@
             "type": "string"
         },
         "nodeSelector": {
-            "type": "object"
+            "type": "object",
+            "additionalProperties": false
         },
         "podSecurityContext": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "runAsGroup": {
                     "type": "integer"
@@ -95,6 +146,7 @@
                 },
                 "seccompProfile": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "type": {
                             "type": "string"
@@ -103,11 +155,16 @@
                 }
             }
         },
+        "provider": {
+            "type": "string"
+        },
         "resources": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "limits": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "cpu": {
                             "type": "string"
@@ -119,6 +176,7 @@
                 },
                 "requests": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "cpu": {
                             "type": "string"
@@ -132,6 +190,7 @@
         },
         "rotation": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "schedule": {
                     "type": "string"
@@ -140,12 +199,14 @@
         },
         "securityContext": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "allowPrivilegeEscalation": {
                     "type": "boolean"
                 },
                 "capabilities": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "drop": {
                             "type": "array",
@@ -166,6 +227,7 @@
                 },
                 "seccompProfile": {
                     "type": "object",
+                    "additionalProperties": false,
                     "properties": {
                         "type": {
                             "type": "string"
@@ -176,6 +238,7 @@
         },
         "serviceAccount": {
             "type": "object",
+            "additionalProperties": false,
             "properties": {
                 "create": {
                     "type": "boolean"
@@ -184,6 +247,9 @@
                     "type": "null"
                 }
             }
+        },
+        "subscriptionID": {
+            "type": "string"
         },
         "tolerations": {
             "type": "array"
