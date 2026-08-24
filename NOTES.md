@@ -14,4 +14,3 @@ Topics
 - Teams should set the Topics field in slack to a comma separated list of interest areas.
 - This will then be used to map to support technologies (e.g. support-capi, support-gitops)
 - multiple teams can then share support topics by adding that technology to their team.
-

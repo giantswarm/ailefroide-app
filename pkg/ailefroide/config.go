@@ -64,7 +64,7 @@ func NewConfig(filename string) (*Config, error) {
 		Config Config `yaml:"config"`
 	}{}
 
-	yamlFile, err := os.ReadFile(filename)
+	yamlFile, err := os.ReadFile(filename) // #nosec G304 -- filename is the operator-provided config path
 	if err != nil {
 		log.Printf("yamlFile.Get err   #%v ", err)
 		return nil, err
