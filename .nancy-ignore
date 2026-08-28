@@ -1,6 +1,18 @@
-# Affects all versions of archiver which is required by vault.
-# Taken from: https://github.com/giantswarm/opsctl/pull/1072/files#diff-bbe4a7fb12c43622bce7c6840c770e9995be614626a219942ca138403629cb69R1
-CVE-2023-32731 until=2023-12-20
-CVE-2022-32149 until=2023-12-20
-CVE-2023-32731 until=2023-12-20
-CVE-2021-38561 until=2023-12-20
+CVE-2025-47913 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39827 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39835 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2025-22869 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2025-47914 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2025-58181 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39828 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39831 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39833 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-46598 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2024-45337 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39832 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-42508 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-46595 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-46597 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39834 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39829 until=2026-09-27 # golang.org/x/crypto@v0.17.0
+CVE-2026-39830 until=2026-09-27 # golang.org/x/crypto@v0.17.0
