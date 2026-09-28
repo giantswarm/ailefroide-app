@@ -8,7 +8,7 @@ require (
 	github.com/creasty/defaults v1.7.0
 	github.com/giantswarm/personio-go v0.6.0
 	github.com/google/go-github/v88 v88.0.0
-	github.com/slack-go/slack v0.23.1
+	github.com/slack-go/slack v0.29.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
