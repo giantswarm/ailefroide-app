@@ -9,7 +9,7 @@ require (
 	github.com/giantswarm/personio-go v0.6.0
 	github.com/google/go-github/v88 v88.0.0
 	github.com/slack-go/slack v0.23.1
-	gopkg.in/yaml.v2 v2.4.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

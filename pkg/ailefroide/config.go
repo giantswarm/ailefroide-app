@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/creasty/defaults"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 type Github struct {
