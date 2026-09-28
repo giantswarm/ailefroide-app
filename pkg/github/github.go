@@ -13,7 +13,7 @@ import (
 	aile "github.com/giantswarm/ailefroide/pkg/ailefroide"
 
 	ap "github.com/giantswarm/personio-go/v1"
-	"github.com/google/go-github/v88/github"
+	"github.com/google/go-github/v92/github"
 )
 
 type Github struct {
