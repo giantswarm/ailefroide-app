@@ -33,8 +33,9 @@ following teams in Github
 
 > Teams eligible for support handle rotation are Github teams that start with
 > the `team-` prefix and contain either Solution Architects or Account
-> Engineers. Teams which do not contain either of these two roles are skipped
-> from the rotation cycle.
+> Engineers, or that set `rotateWithoutSolutionArchitect` (see [Team specific
+> configuration](#team-specific-configuration)). Other teams are skipped from
+> the rotation cycle, and each skip is logged.
 
 If you appear in both chapter-sa and chapter-ae, you are classed as an account
 engineer.
@@ -75,6 +76,10 @@ For each team, there are certain configuration options that can be included
 - `extraCover string[]` A list of additional people to include for extra
   coverage of your teams support handle. Both email addresses and Github handles
   are supported here.
+- `rotateWithoutSolutionArchitect bool` - If true, your team stays in the
+  rotation even when it has no Solution Architect. Its support handle then
+  holds the members picked by the options above, such as the On Call Engineer
+  during business hours. Defaults to false
 
 #### Examples
 
@@ -113,6 +118,15 @@ For each team, there are certain configuration options that can be included
     team-honeybadger:
       extraCover:
         - fakeuser@giantswarm.io
+  ```
+
+- Enable your team without a Solution Architect, so the support handle follows
+  the On Call Engineer
+
+  ```yaml
+  teams:
+    team-honeybadger:
+      rotateWithoutSolutionArchitect: true
   ```
 
 - Alternatively you can use Github handles

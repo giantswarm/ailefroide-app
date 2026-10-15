@@ -73,13 +73,12 @@ func (t *Team) IsAccountEngineering() bool {
 
 // InRotation Should this team get a support handle
 //
-// A team enabled in the config (listed with skipRotation false) always
-// qualifies. Any other team qualifies only by its make-up: it has a solution
-// architect, or it is the account engineering team. Without the first rule, a
-// configured team whose only solution architect leaves silently drops out, and
-// its handles keep their last members for good.
+// A team qualifies by its make-up: it has a solution architect, or it is the
+// account engineering team. A team without either can opt in with
+// rotateWithoutSolutionArchitect; otherwise it drops out, and its handles keep
+// their last members, since nothing updates them any more.
 func (t *Team) InRotation(settings map[string]TeamSettings) bool {
-	if s, ok := settings[t.Name]; ok && !s.SkipRotation {
+	if s, ok := settings[t.Name]; ok && !s.SkipRotation && s.RotateWithoutSolutionArchitect {
 		return true
 	}
 	return t.IsEngineeringTeam() || t.IsAccountEngineering()
