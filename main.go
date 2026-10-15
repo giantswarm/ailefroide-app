@@ -171,7 +171,7 @@ func main() {
 	for _, t := range <-teamchan {
 		parseTeamMembers(t, slackUsers, afkEvents, g, cfg.Teams[t.Name].ExtraCover)
 		if !t.InRotation(cfg.Teams) {
-			log.Printf("Skipping team %s: no solution architect or account engineer, and rotateWithoutSolutionArchitect is not set", t.Name)
+			log.Printf("Skipping team %s: no solution architect or account engineer, and rotateWithoutSolutionArchitect is unset or overridden by skipRotation", t.Name)
 			continue
 		}
 		if topic, ok := topics[t.Name]; ok {
