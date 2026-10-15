@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-15
+
 ### Added
 
 - `rotateWithoutSolutionArchitect` team setting keeps a team without a Solution Architect in the rotation, so its support handle follows the on-call engineer instead of keeping stale members.
@@ -168,7 +170,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Release first stable version.
 
-[Unreleased]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/giantswarm/ailefroide-app/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/giantswarm/ailefroide-app/compare/v0.7.0...v0.7.2
 [0.7.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/giantswarm/ailefroide-app/compare/v0.5.0...v0.6.0
