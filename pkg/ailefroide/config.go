@@ -24,6 +24,8 @@ type TeamSettings struct {
 	IncludePlatformArchitect bool     `yaml:"includePa" default:"false"`
 	IncludeSRE               bool     `yaml:"includeSRE" default:"false"`
 	ExtraCover               []string `yaml:"extraCover"`
+
+	RotateWithoutSolutionArchitect bool `yaml:"rotateWithoutSolutionArchitect" default:"false"`
 }
 
 type Config struct {

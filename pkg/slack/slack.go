@@ -330,7 +330,6 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 
 		var (
 			supportName  = "support-" + strings.Split(team.Name, "-")[1]
-			members      = make([]string, 0)
 			teamSettings = s.teamSettings[team.Name]
 		)
 
@@ -344,37 +343,7 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 			supportTopics = aile.AppendTopic(supportTopics, topic, supportName)
 		}
 
-		for _, m := range team.Members {
-			var (
-				includeProductOwner     = (m.IsProductOwner && teamSettings.IncludeProductOwner)
-				includePlaformArchitect = (m.IsPlatformArchitect && teamSettings.IncludePlatformArchitect)
-				includeSRE              = (m.IsSiteReliabilityEngineer && teamSettings.IncludeSRE)
-				includeOncall           = (m.Oncall && teamSettings.IncludeOnCallEngineer)
-				primary                 = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
-				secondary               = (includeOncall || includePlaformArchitect || includeSRE)
-			)
-
-			if m.Email == "" {
-				log.Printf("Skipping user with no email address %+v", m)
-			}
-			if m.Oncall && m.Afk {
-				m.Afk = false
-			}
-
-			message := fmt.Sprintf("%s is NOT", m.Email)
-			if (primary || secondary || m.IncludeWhenNotAFK) && m.SlackID != "" && !m.Afk {
-				message = fmt.Sprintf("%s is", m.Email)
-				if debug {
-					members = append(members, fmt.Sprintf("%s (%s)", m.Email, m.SlackID))
-				} else {
-					members = append(members, m.SlackID)
-				}
-			}
-			message += fmt.Sprintf(" because primary=%t secondary=%t afk=%t slackid=%s", primary, secondary, m.Afk, m.SlackID)
-			log.Println(message)
-		}
-
-		supportTeams[supportName] = members
+		supportTeams[supportName] = supportMembers(team, teamSettings, debug)
 	}
 
 	var (
@@ -413,6 +382,45 @@ func (s *Slack) SlackHandles(teams []*aile.Team, debug bool, debugTeam string) {
 			break
 		}
 	}
+}
+
+// supportMembers Pick the members of a team who belong in its support handle
+//
+// The on-call engineer is only in it while Oncall is set, which WhoIsOnCall
+// limits to business hours, so every run drops a shift that has ended.
+func supportMembers(team *aile.Team, teamSettings aile.TeamSettings, debug bool) []string {
+	members := make([]string, 0)
+	for _, m := range team.Members {
+		var (
+			includeProductOwner     = (m.IsProductOwner && teamSettings.IncludeProductOwner)
+			includePlaformArchitect = (m.IsPlatformArchitect && teamSettings.IncludePlatformArchitect)
+			includeSRE              = (m.IsSiteReliabilityEngineer && teamSettings.IncludeSRE)
+			includeOncall           = (m.Oncall && teamSettings.IncludeOnCallEngineer)
+			primary                 = (m.IsSolutionArchitect || m.IsAccountEngineer || includeProductOwner)
+			secondary               = (includeOncall || includePlaformArchitect || includeSRE)
+		)
+
+		if m.Email == "" {
+			log.Printf("Skipping user with no email address %+v", m)
+		}
+		if m.Oncall && m.Afk {
+			m.Afk = false
+		}
+
+		message := fmt.Sprintf("%s is NOT", m.Email)
+		if (primary || secondary || m.IncludeWhenNotAFK) && m.SlackID != "" && !m.Afk {
+			message = fmt.Sprintf("%s is", m.Email)
+			if debug {
+				members = append(members, fmt.Sprintf("%s (%s)", m.Email, m.SlackID))
+			} else {
+				members = append(members, m.SlackID)
+			}
+		}
+		message += fmt.Sprintf(" because primary=%t secondary=%t afk=%t slackid=%s", primary, secondary, m.Afk, m.SlackID)
+		log.Println(message)
+	}
+
+	return members
 }
 
 func (s *Slack) debug(supportTeams, supportTopics map[string][]string) {

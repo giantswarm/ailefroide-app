@@ -1,5 +1,6 @@
 *.json
 **/config.yaml
 *.disabled
-ailefroide
+/ailefroide
+/ailefroide-app
 *.pem

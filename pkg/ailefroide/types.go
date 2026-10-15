@@ -70,3 +70,20 @@ func (t *Team) IsAccountEngineering() bool {
 	}
 	return true
 }
+
+// InRotation Should this team get a support handle
+//
+// A team qualifies by its make-up: it has a solution architect, or it is the
+// account engineering team. A team without either can opt in with
+// rotateWithoutSolutionArchitect; otherwise it drops out, and its handles keep
+// their last members, since nothing updates them any more.
+//
+// skipRotation still wins over the opt-in, so a skipped team without a
+// solution architect isn't looked up in PagerDuty only to be dropped by
+// SlackHandles. A skipped team with one is still looked up, as before.
+func (t *Team) InRotation(settings map[string]TeamSettings) bool {
+	if s, ok := settings[t.Name]; ok && !s.SkipRotation && s.RotateWithoutSolutionArchitect {
+		return true
+	}
+	return t.IsEngineeringTeam() || t.IsAccountEngineering()
+}
