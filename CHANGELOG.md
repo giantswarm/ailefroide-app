@@ -7,6 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- The values schema accepts `envSecret.values.PAGERDUTY_TOKEN`, which the app requires; 0.8.0's strict schema rejected it and failed every upgrade that sets it.
+
 ## [0.8.0] - 2026-10-15
 
 ### Added

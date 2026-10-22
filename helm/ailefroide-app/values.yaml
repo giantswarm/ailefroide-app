@@ -11,6 +11,7 @@ envSecret:
     OPSGENIE_TOKEN: ""
     PERSONIO_CLIENT_ID: ""
     PERSONIO_CLIENT_SECRET: ""
+    PAGERDUTY_TOKEN: ""
 
 configMap:
   name: ailefroide-config

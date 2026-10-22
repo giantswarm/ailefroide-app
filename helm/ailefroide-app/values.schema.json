@@ -79,6 +79,9 @@
                         "OPSGENIE_TOKEN": {
                             "type": "string"
                         },
+                        "PAGERDUTY_TOKEN": {
+                            "type": "string"
+                        },
                         "PERSONIO_CLIENT_ID": {
                             "type": "string"
                         },
