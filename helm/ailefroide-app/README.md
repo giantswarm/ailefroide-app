@@ -25,6 +25,7 @@ A Helm chart for Ailefroide, the Slack support handle manager
 | envSecret.values.OPSGENIE_TOKEN | string | `""` |  |
 | envSecret.values.PERSONIO_CLIENT_ID | string | `""` |  |
 | envSecret.values.PERSONIO_CLIENT_SECRET | string | `""` |  |
+| envSecret.values.PAGERDUTY_TOKEN | string | `""` |  |
 | configMap.name | string | `"ailefroide-config"` |  |
 | configMap.values."config.yaml" | string | `""` |  |
 | configMap.values."token.json" | string | `""` |  |
