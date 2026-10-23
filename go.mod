@@ -1,6 +1,6 @@
 module github.com/giantswarm/ailefroide
 
-go 1.25.0
+go 1.26
 
 require (
 	github.com/PagerDuty/go-pagerduty v1.8.0
@@ -8,7 +8,7 @@ require (
 	github.com/creasty/defaults v1.7.0
 	github.com/giantswarm/personio-go v0.6.0
 	github.com/google/go-github/v88 v88.0.0
-	github.com/slack-go/slack v0.23.1
+	github.com/slack-go/slack v0.30.1
 	gopkg.in/yaml.v2 v2.4.0
 )
 
