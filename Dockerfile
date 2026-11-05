@@ -1,4 +1,4 @@
-FROM gsoci.azurecr.io/giantswarm/alpine:3.24.3
+FROM gsoci.azurecr.io/giantswarm/alpine:3.24.4
 
 # architect/go-build produces one binary per target platform, so the multi-arch
 # buildx build has to pick the one matching the stage it is building.
