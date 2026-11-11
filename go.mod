@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/PagerDuty/go-pagerduty v1.8.0
 	github.com/bradleyfalzon/ghinstallation/v2 v2.19.0
-	github.com/creasty/defaults v1.7.0
+	github.com/creasty/defaults v1.11.0
 	github.com/giantswarm/personio-go v0.6.0
 	github.com/google/go-github/v88 v88.0.0
 	github.com/slack-go/slack v0.23.1
